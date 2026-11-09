@@ -52,8 +52,8 @@ We use a 50,000-review sample of the [Amazon Fine Food Reviews](https://www.kagg
 Requires Python 3.11 or 3.12.
 
 ```bash
-git clone https://github.com/[OWNER]/[REPO].git
-cd [REPO]
+git clone https://github.com/PowerSixxx/cse3521-sentiment.git
+cd cse3521-sentiment
 
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate

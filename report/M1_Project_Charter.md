@@ -1,6 +1,6 @@
 # Milestone 1: Project Charter & Scope
 
-**GitHub repository:** https://github.com/[OWNER]/[REPO]
+**GitHub repository:** https://github.com/PowerSixxx/cse3521-sentiment
 
 CSE 3521, Autumn 2026 · Group Gamma · Data seed: **44** · Submitted Tue Nov 10, 2026
 
@@ -84,4 +84,4 @@ We meet [DAY/TIME] weekly on [in person / Zoom / Discord], track tasks in GitHub
 
 ## 6. GitHub Repository
 
-**Public repository:** https://github.com/[OWNER]/[REPO]. It follows the required layout: `README.md` (title, team, description, setup, live app URL placeholder), `data/` (download and sampling instructions; CSVs are git-ignored), `notebooks/`, `models/`, `report/`, and `requirements.txt` with pinned versions. `app.py` is added at M3. Every member has write access and commits from their own account.
+**Public repository:** https://github.com/PowerSixxx/cse3521-sentiment. It follows the required layout: `README.md` (title, team, description, setup, live app URL placeholder), `data/` (download and sampling instructions; CSVs are git-ignored), `notebooks/`, `models/`, `report/`, and `requirements.txt` with pinned versions. `app.py` is added at M3. Every member has write access and commits from their own account.
