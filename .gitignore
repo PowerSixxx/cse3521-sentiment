@@ -1,0 +1,46 @@
+# ---- Data (never commit the dataset) ----
+data/*.csv
+data/*.zip
+data/*.sqlite
+*.csv
+
+# ---- Large model weights ----
+# Small sklearn models (*.joblib / *.pkl under ~50 MB) MAY be committed so the
+# Streamlit app can load them. Large deep-learning weights should not be.
+models/**/*.pt
+models/**/*.pth
+models/**/*.bin
+models/**/*.safetensors
+models/**/*.h5
+models/**/checkpoint-*/
+*.ckpt
+
+# ---- Secrets ----
+.env
+kaggle.json
+.streamlit/secrets.toml
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# ---- Jupyter ----
+.ipynb_checkpoints/
+
+# ---- Hugging Face / caches ----
+.cache/
+wandb/
+runs/
+lightning_logs/
+
+# ---- OS / editors ----
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

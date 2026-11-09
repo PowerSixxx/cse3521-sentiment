@@ -1,0 +1,29 @@
+# Python 3.11 or 3.12. Install with: pip install -r requirements.txt
+# Streamlit Community Cloud installs from this file, so keep it to what the app
+# and notebooks actually import.
+
+# Core data + ML
+numpy==2.4.6
+pandas==3.0.6
+scikit-learn==1.8.0
+scipy==1.17.1
+joblib==1.5.3
+
+# Text processing
+nltk==3.10.3
+
+# Visualization
+matplotlib==3.10.9
+seaborn==0.13.2
+
+# App
+streamlit==1.66.1
+
+# Notebooks (local development only)
+jupyter==1.1.1
+
+# ---- Deep / modern model (uncomment when the team picks the model) ----
+# torch is large; for a CPU-only install use:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+# torch==2.14.1
+# transformers==5.21.1
