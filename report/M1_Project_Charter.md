@@ -12,7 +12,7 @@ CSE 3521, Autumn 2026 · Group Gamma · Data seed: **44** · Submitted Tue Nov 1
 |----|-----|-----|------------------|
 | [Name 1] | [name.#]@osu.edu | Project Lead | I will run weekly check-ins, own the milestone timeline, and integrate everyone's work into each submission. |
 | [Name 2] | [name.#]@osu.edu | Data Engineer | I will own data cleaning, the shared train/test split, and the BoW and TF-IDF pipeline. |
-| [Name 3] | [name.#]@osu.edu | ML Engineer (classical) | I will train and tune Naive Bayes and Logistic Regression and maintain the model comparison table. |
+| [Henry Benner] | [benner.162]@osu.edu | ML Engineer (classical) | I will train and tune Naive Bayes and Logistic Regression and maintain the model comparison table. |
 | [Name 4] | [name.#]@osu.edu | ML Engineer (deep) | I will build and train our neural network model and compare it to the classical baselines. |
 | [Name 5] | [name.#]@osu.edu | App Engineer | I will build and deploy the Streamlit app with live predictions from at least two models. |
 | [Name 6] | [name.#]@osu.edu | Analyst / Writer | I will lead error analysis, write the reports, and prepare the presentation deck. |
