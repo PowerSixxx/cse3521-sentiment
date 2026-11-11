@@ -9,13 +9,11 @@ CSE 3521: Survey of Artificial Intelligence I, Autumn 2026, The Ohio State Unive
 ## Team
 
 | Name | OSU email | Primary role |
-|---|---|---|
-| [Name 1] | [name.#]@osu.edu | Project Lead |
-| [Name 2] | [name.#]@osu.edu | Data Engineer |
-| [Name 3] | [name.#]@osu.edu | ML Engineer (classical models) |
-| [Name 4] | [name.#]@osu.edu | ML Engineer (deep model) |
-| [Name 5] | [name.#]@osu.edu | App Engineer |
-| [Name 6] | [name.#]@osu.edu | Analyst / Writer |
+| --- | --- | --- |
+| Andrew Kobasko | kobasko.1@osu.edu | Project Lead + ML Engineer (deep) |
+| Tarun Shivakumar | shivakumar.15@osu.edu | Data Engineer + Analyst / Writer |
+| Henry Benner | benner.162@osu.edu | ML Engineer (classical) |
+| Baowen Liu | liu.11884@osu.edu | App Engineer |
 
 ## About the project
 
@@ -32,9 +30,11 @@ Every model is evaluated on a held-out 20% test set with accuracy, precision, re
 
 [Group Project PDF](./group_project.pdf)
 
+[M1 Project Charter (PDF)](./report/M1_Project_Charter.pdf)
+
 ## Dataset
 
-We use a 50,000-review sample of the [Amazon Fine Food Reviews](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews) dataset (568,454 reviews), drawn with our group seed. The CSV is **not** committed to this repository. See [`data/README.md`](data/README.md) for how to download the data and generate the sample.
+We use a 50,000-review sample of the [Amazon Fine Food Reviews](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews) dataset (568,454 reviews), drawn with seed 44. We label 1–2-star reviews as negative and 4–5-star reviews as positive, and exclude 3-star reviews from the binary classification task. The CSV is **not** committed to this repository. See [`data/README.md`](data/README.md) for how to download the data and generate the sample.
 
 ## Repository structure
 

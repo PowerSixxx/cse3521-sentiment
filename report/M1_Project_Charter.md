@@ -4,20 +4,16 @@
 
 CSE 3521, Autumn 2026 · Group Gamma · Data seed: **44** · Submitted Tue Nov 10, 2026
 
-<!-- Fill every [BRACKET]. Delete this comment before exporting. -->
-
 ## 1. Team Roster
 
 | Name | OSU email | Primary role | What I will own |
-|----|-----|-----|------------------|
-| [Name 1] | [name.#]@osu.edu | Project Lead | I will run weekly check-ins, own the milestone timeline, and integrate everyone's work into each submission. |
-| [Name 2] | [name.#]@osu.edu | Data Engineer | I will own data cleaning, the shared train/test split, and the BoW and TF-IDF pipeline. |
+| --- | --- | --- | --- |
+| Andrew Kobasko | kobasko.1@osu.edu | Project Lead + ML Engineer (deep) | I will run weekly check-ins, own the milestone timeline and integration, and build and train our neural network model against the classical baselines. |
+| Tarun Shivakumar | shivakumar.15@osu.edu | Data Engineer + Analyst / Writer | I will own data cleaning, the shared train/test split, and the BoW/TF-IDF pipeline, and lead error analysis, the reports and the presentation deck. |
 | Henry Benner | benner.162@osu.edu | ML Engineer (classical) | I will train and tune Naive Bayes and Logistic Regression and maintain the model comparison table. |
-| [Name 4] | [name.#]@osu.edu | ML Engineer (deep) | I will build and train our neural network model and compare it to the classical baselines. |
-| [Name 5] | [name.#]@osu.edu | App Engineer | I will build and deploy the Streamlit app with live predictions from at least two models. |
-| [Name 6] | [name.#]@osu.edu | Analyst / Writer | I will lead error analysis, write the reports, and prepare the presentation deck. |
+| Baowen Liu | liu.11884@osu.edu | App Engineer | I will build and deploy the Streamlit app with live predictions from at least two models. |
 
-Every member also contributes code or analysis outside their primary role and commits from their own GitHub account. [For a team of 4 or 5, merge roles, e.g. Data Engineer + classical ML Engineer.]
+Every member also contributes code or analysis outside their primary role and commits from their own GitHub account.
 
 ## 2. Problem Statement
 
@@ -56,25 +52,25 @@ All models use the same cleaned, deduplicated, stratified 80/20 split with a fix
 
 | Component | Choice and reason | Course link |
 |---|-----------------|---|
-| Features 1 | **Bag of Words** (unigrams + bigrams): simple, interpretable, the natural input for Multinomial NB; bigrams capture "not good". | Lesson [X] |
-| Features 2 | **TF-IDF** (unigrams + bigrams): down-weights words common to all reviews so sentiment words stand out; usually stronger for linear models. | Lesson [X] |
-| Classical 1 | **Multinomial Naive Bayes**, tuning smoothing α: fast probabilistic baseline for word counts. | Lesson 9 [confirm] |
-| Classical 2 | **Logistic Regression**, tuning C, L1/L2 and class weights: strong linear model whose coefficients show which words drive each class. | Lesson [X] |
-| Deep | **Feedforward neural network** on TF-IDF (1–2 hidden layers, dropout): tests whether a non-linear model beats linear baselines on the same features. | Lesson [X] |
-| Stretch | **DistilBERT** fine-tuned on a subset: reads word order and context, so it should handle negation and mixed reviews better. | Lesson [X] |
+| Features 1 | **Bag of Words** (unigrams + bigrams): simple, interpretable, the natural input for Multinomial NB; bigrams capture "not good". | Lesson 6 |
+| Features 2 | **TF-IDF** (unigrams + bigrams): down-weights words common to all reviews so sentiment words stand out; usually stronger for linear models. | Lesson 6 |
+| Classical 1 | **Multinomial Naive Bayes**, tuning smoothing α: fast probabilistic baseline for word counts. | Lesson 9 |
+| Classical 2 | **Logistic Regression**, tuning C, L1/L2 and class weights: strong linear model whose coefficients show which words drive each class. | To be confirmed |
+| Deep | **Feedforward neural network** on TF-IDF (1–2 hidden layers, dropout): tests whether a non-linear model beats linear baselines on the same features. | To be confirmed |
+| Stretch | **DistilBERT** fine-tuned on a subset: reads word order and context, so it should handle negation and mixed reviews better. | To be confirmed |
 | App | **Streamlit** app loads saved models from `models/` and shows label and confidence from 2+ models side by side; deployed on Streamlit Community Cloud. | n/a |
 
 ## 5. Project Timeline
 
 | Week | Milestone | Who does what |
 |---|---|------------------|
-| Nov 9–10 | **M1** (Tue Nov 10) | [Data Eng] sample, stats, Figure 1. [Lead] repo, README, charter draft. [Writer] edit and export PDF. All: confirm roles and label scheme. |
-| Nov 11–15 | **M2** (Sun Nov 15) | [Data Eng] cleaning, dedup, split, BoW and TF-IDF. [ML classical] Naive Bayes + majority baseline. [ML deep] FFNN code. [App Eng] Streamlit skeleton. [Writer] error analysis, M2 report. |
-| Nov 16–22 | **M3** (Sun Nov 22) | [ML classical] tune LR and NB. [ML deep] train FFNN (DistilBERT if time), loss curves. [App Eng] connect models, staging deploy. [Data Eng] reproducibility in README. [Lead + Writer] comparison table, M3 report. |
-| Nov 23–29 | **M4** (Sun Nov 29) | [App Eng] final deployment. [Writer] final report. [Lead] slides. All: contribution paragraphs, proofreading. |
+| Nov 9–10 | **M1** (Tue Nov 10) | Tarun: sample, stats, and Figure 1. Andrew: repository, README, and charter draft. Tarun: edit and export the PDF. All: confirm roles and the label scheme. |
+| Nov 11–15 | **M2** (Sun Nov 15) | Tarun: cleaning, deduplication, split, BoW, TF-IDF, error analysis, and M2 report. Henry: Naive Bayes and majority-class baseline. Andrew: FFNN code. Baowen: Streamlit skeleton. |
+| Nov 16–22 | **M3** (Sun Nov 22) | Henry: tune Logistic Regression and Naive Bayes. Andrew: train the FFNN, plot loss curves, and try DistilBERT if time allows. Baowen: connect the models and deploy to staging. Tarun: document reproducibility in the README. Andrew and Tarun: model comparison table and M3 report. |
+| Nov 23–29 | **M4** (Sun Nov 29) | Baowen: final deployment. Tarun: final report. Andrew: slides. All: write contribution paragraphs and proofread. |
 | Nov 30–Dec 2 | Live demo | All: rehearse the 8-minute demo (everyone speaks) and Q&A on their own part. |
 
-We meet [DAY/TIME] weekly on [in person / Zoom / Discord], track tasks in GitHub Issues, and set an internal deadline two days before each milestone.
+We plan weekly check-ins, track tasks in GitHub Issues, and set an internal deadline two days before each milestone.
 
 **Risks and mitigation:**
 
