@@ -85,3 +85,5 @@ We meet [DAY/TIME] weekly on [in person / Zoom / Discord], track tasks in GitHub
 ## 6. GitHub Repository
 
 **Public repository:** https://github.com/PowerSixxx/cse3521-sentiment. It follows the required layout: `README.md` (title, team, description, setup, live app URL placeholder), `data/` (download and sampling instructions; CSVs are git-ignored), `notebooks/`, `models/`, `report/`, and `requirements.txt` with pinned versions. `app.py` is added at M3. Every member has write access and commits from their own account.
+
+[Group Project PDF](https://github.com/PowerSixxx/cse3521-sentiment/blob/main/group_project.pdf)

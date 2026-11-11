@@ -30,6 +30,8 @@ The work has four layers:
 
 Every model is evaluated on a held-out 20% test set with accuracy, precision, recall, F1-score and a confusion matrix.
 
+[Group Project PDF](./group_project.pdf)
+
 ## Dataset
 
 We use a 50,000-review sample of the [Amazon Fine Food Reviews](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews) dataset (568,454 reviews), drawn with our group seed. The CSV is **not** committed to this repository. See [`data/README.md`](data/README.md) for how to download the data and generate the sample.
