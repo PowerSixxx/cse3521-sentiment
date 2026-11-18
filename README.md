@@ -21,8 +21,8 @@ We build a sentiment classifier for Amazon Fine Food Reviews and serve it throug
 
 The work has four layers:
 
-1. **Feature engineering:** at least two text representations (Bag of Words and TF-IDF are planned).
-2. **Classical models:** at least two tuned classical classifiers (Multinomial Naive Bayes and Logistic Regression are planned).
+1. **Feature engineering:** at least two text representations (Bag of Words and TF-IDF, both built).
+2. **Classical models:** at least two tuned classical classifiers (Multinomial Naive Bayes trained; Logistic Regression planned for M3).
 3. **Deep / modern model:** at least one neural model compared against the classical baselines (a feedforward network, with DistilBERT as a stretch goal).
 4. **Deployed app:** a Streamlit Community Cloud app that returns live predictions.
 
@@ -44,7 +44,7 @@ We use a 50,000-review sample of the [Amazon Fine Food Reviews](https://www.kagg
 ├── data/              Dataset download and sampling instructions (CSV files are git-ignored)
 ├── notebooks/         Jupyter notebooks for EDA, feature engineering, model training
 ├── models/            Saved model files used by the app
-├── app.py             Streamlit app entry point (added at M3)
+├── app.py             Streamlit app entry point
 ├── requirements.txt   Python dependencies with pinned versions
 └── report/            Milestone reports, final report PDF and slides
 ```
@@ -70,7 +70,7 @@ Then follow [`data/README.md`](data/README.md) to place `group_sample_seed44.csv
 jupyter notebook notebooks/
 ```
 
-### Run the app locally (from M3)
+### Run the app locally
 
 ```bash
 streamlit run app.py
@@ -85,7 +85,7 @@ streamlit run app.py
 | Milestone | Due | Deliverable |
 |---|---|---|
 | M1: Project Charter & Scope | Tue Nov 10 | Charter PDF + this repository |
-| M2: Initial Solution | Sun Nov 15 | Feature pipeline, first classical model results |
+| M2: Initial Solution | Wed Nov 18 | Feature pipeline, first classical model results |
 | M3: Refined Solution & App Prototype | Sun Nov 22 | All models compared, Streamlit app running |
 | M4: Final Report & Live Demo | Sun Nov 29 | Final report, slides, live demo |
 
@@ -97,4 +97,4 @@ streamlit run app.py
 
 ## AI assistance disclosure
 
-[One sentence for the final report, for example: "We used [tool] for implementation assistance; all analysis, interpretation and writing are our own."]
+We used AI assistance in this project; every team member reviewed this work, and all analysis and interpretation are our own.
