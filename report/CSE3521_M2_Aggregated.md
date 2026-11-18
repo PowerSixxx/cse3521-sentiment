@@ -62,8 +62,6 @@ The classical baseline is **Multinomial Naive Bayes** trained on BoW unigrams an
 
 ![Figure 1. Naive Bayes Confusion Matrix](figures/m2_nb_confusion_matrix.png){width=65%}
 
-**[TO ADD: Ensure the referenced image exists in the `figures/` directory; optionally summarize TP, TN, FP, and FN from the figure.]**
-
 **Interpretation:** Naive Bayes reaches **91.77% test accuracy**, compared with **84.00%** for the majority-class baseline, an improvement of **7.77 percentage points**. The majority baseline fails to identify any negative reviews (negative recall and F1 both zero). Naive Bayes identifies **79.87%** of negative reviews (negative F1 = **0.7565**), demonstrating meaningful learning beyond class frequency alone. Its remaining errors, especially on negative reviews, motivate further model and feature improvements.
 
 ## 3. Error Analysis
