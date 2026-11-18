@@ -8,10 +8,12 @@ CSE 3521, Autumn 2026 · Group Gamma · Data seed: **44** · Submitted Tue Nov 1
 
 | Name | OSU email | Primary role | What I will own |
 | --- | --- | --- | --- |
-| Andrew Kobasko | kobasko.1@osu.edu | Project Lead + ML Engineer (deep) | I will run weekly check-ins, own the milestone timeline and integration, and build and train our neural network model against the classical baselines. |
-| Tarun Shivakumar | shivakumar.15@osu.edu | Data Engineer + Analyst / Writer | I will own data cleaning, the shared train/test split, and the BoW/TF-IDF pipeline, and lead error analysis, the reports and the presentation deck. |
+| Andrew Kobasko | kobasko.1@osu.edu | Project Lead | I will run weekly check-ins, own the milestone timeline, and integrate everyone's work into each submission. |
+| Tarun Shivakumar | shivakumar.15@osu.edu | Data Engineer | I will own data cleaning, the shared train/test split, and the BoW and TF-IDF pipeline. |
 | Henry Benner | benner.162@osu.edu | ML Engineer (classical) | I will train and tune Naive Bayes and Logistic Regression and maintain the model comparison table. |
+| Andrew Kobasko | kobasko.1@osu.edu | ML Engineer (deep) | I will build and train our neural network model and compare it to the classical baselines. |
 | Baowen Liu | liu.11884@osu.edu | App Engineer | I will build and deploy the Streamlit app with live predictions from at least two models. |
+| Tarun Shivakumar | shivakumar.15@osu.edu | Analyst / Writer | I will lead error analysis, write the reports, and prepare the presentation deck. |
 
 Every member also contributes code or analysis outside their primary role and commits from their own GitHub account.
 
@@ -55,22 +57,22 @@ All models use the same cleaned, deduplicated, stratified 80/20 split with a fix
 | Features 1 | **Bag of Words** (unigrams + bigrams): simple, interpretable, the natural input for Multinomial NB; bigrams capture "not good". | Lesson 6 |
 | Features 2 | **TF-IDF** (unigrams + bigrams): down-weights words common to all reviews so sentiment words stand out; usually stronger for linear models. | Lesson 6 |
 | Classical 1 | **Multinomial Naive Bayes**, tuning smoothing α: fast probabilistic baseline for word counts. | Lesson 9 |
-| Classical 2 | **Logistic Regression**, tuning C, L1/L2 and class weights: strong linear model whose coefficients show which words drive each class. | To be confirmed |
-| Deep | **Feedforward neural network** on TF-IDF (1–2 hidden layers, dropout): tests whether a non-linear model beats linear baselines on the same features. | To be confirmed |
-| Stretch | **DistilBERT** fine-tuned on a subset: reads word order and context, so it should handle negation and mixed reviews better. | To be confirmed |
+| Classical 2 | **Logistic Regression**, tuning C, L1/L2 and class weights: strong linear model whose coefficients show which words drive each class. | Project extension |
+| Deep | **Feedforward neural network** on TF-IDF (1–2 hidden layers, dropout): tests whether a non-linear model beats linear baselines on the same features. | Project extension |
+| Stretch | **DistilBERT** fine-tuned on a subset: reads word order and context, so it should handle negation and mixed reviews better. | Optional extension |
 | App | **Streamlit** app loads saved models from `models/` and shows label and confidence from 2+ models side by side; deployed on Streamlit Community Cloud. | n/a |
 
 ## 5. Project Timeline
 
 | Week | Milestone | Who does what |
 |---|---|------------------|
-| Nov 9–10 | **M1** (Tue Nov 10) | Tarun: sample, stats, and Figure 1. Andrew: repository, README, and charter draft. Tarun: edit and export the PDF. All: confirm roles and the label scheme. |
-| Nov 11–15 | **M2** (Sun Nov 15) | Tarun: cleaning, deduplication, split, BoW, TF-IDF, error analysis, and M2 report. Henry: Naive Bayes and majority-class baseline. Andrew: FFNN code. Baowen: Streamlit skeleton. |
-| Nov 16–22 | **M3** (Sun Nov 22) | Henry: tune Logistic Regression and Naive Bayes. Andrew: train the FFNN, plot loss curves, and try DistilBERT if time allows. Baowen: connect the models and deploy to staging. Tarun: document reproducibility in the README. Andrew and Tarun: model comparison table and M3 report. |
-| Nov 23–29 | **M4** (Sun Nov 29) | Baowen: final deployment. Tarun: final report. Andrew: slides. All: write contribution paragraphs and proofread. |
+| Nov 9–10 | **M1** (Tue Nov 10) | Baowen has completed the setup of the GitHub repo and has also completed the project framework setup for Milestone 1. Tarun sample, stats, Figure 1. Andrew repo, README, charter draft. Tarun edit and export PDF. All: confirm roles and label scheme. |
+| Nov 11–15 | **M2** (Sun Nov 15) | Tarun cleaning, dedup, split, BoW and TF-IDF. Henry Naive Bayes + majority baseline. Andrew FFNN code. Baowen Streamlit skeleton. Tarun error analysis, M2 report. |
+| Nov 16–22 | **M3** (Sun Nov 22) | Henry tune LR and NB. Andrew train FFNN (DistilBERT if time), loss curves. Baowen connect models, staging deploy. Tarun reproducibility in README. Andrew and Tarun comparison table, M3 report. |
+| Nov 23–29 | **M4** (Sun Nov 29) | Baowen final deployment. Tarun final report. Andrew slides. All: contribution paragraphs, proofreading. |
 | Nov 30–Dec 2 | Live demo | All: rehearse the 8-minute demo (everyone speaks) and Q&A on their own part. |
 
-We plan weekly check-ins, track tasks in GitHub Issues, and set an internal deadline two days before each milestone.
+We meet Wednesday 7:00 pm weekly in person or Discord, track tasks in GitHub Issues, and set an internal deadline two days before each milestone.
 
 **Risks and mitigation:**
 
@@ -81,5 +83,3 @@ We plan weekly check-ins, track tasks in GitHub Issues, and set an internal dead
 ## 6. GitHub Repository
 
 **Public repository:** https://github.com/PowerSixxx/cse3521-sentiment. It follows the required layout: `README.md` (title, team, description, setup, live app URL placeholder), `data/` (download and sampling instructions; CSVs are git-ignored), `notebooks/`, `models/`, `report/`, and `requirements.txt` with pinned versions. `app.py` is added at M3. Every member has write access and commits from their own account.
-
-[Group Project PDF](https://github.com/PowerSixxx/cse3521-sentiment/blob/main/group_project.pdf)
