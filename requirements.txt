@@ -11,6 +11,7 @@ joblib==1.5.3
 
 # Text processing
 nltk==3.10.3
+pyspellchecker==0.9.1   # scripts/clean_reviews_script_final.py
 
 # Visualization
 matplotlib==3.10.9
