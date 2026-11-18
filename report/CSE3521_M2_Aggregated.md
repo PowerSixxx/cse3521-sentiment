@@ -68,16 +68,20 @@ The classical baseline is **Multinomial Naive Bayes** trained on BoW unigrams an
 
 The team examined **ten reviews** misclassified by Multinomial Naive Bayes. A recurring difficulty was **mixed sentiment**: a review might praise a product's taste but criticize its packaging, causing positive words to dominate even when the overall label is negative. Another issue is **negation**. Phrases such as “not very good” contain individually positive words but express negative sentiment. The current tokenization can also lose contractions: for example, “can't beat” may be represented as “can beat.”
 
-**Table 3. Misclassified review examples — insert 5–10 actual observations.**
+**Table 3. Misclassified review examples**
 
 | Example | True label | Predicted label | Short excerpt / review ID | Likely failure pattern |
 |---:|---|---|---|---|
-| 1 | [TO ADD] | [TO ADD] | [TO ADD] | [TO ADD] |
-| 2 | [TO ADD] | [TO ADD] | [TO ADD] | [TO ADD] |
-| 3 | [TO ADD] | [TO ADD] | [TO ADD] | [TO ADD] |
-| 4 | [TO ADD] | [TO ADD] | [TO ADD] | [TO ADD] |
-| 5 | [TO ADD] | [TO ADD] | [TO ADD] | [TO ADD] |
-| 6–10 (optional) | [TO ADD] | [TO ADD] | [TO ADD] | [TO ADD] |
+| 1 | Positive | Negative | [TO ADD] | [TO ADD] |
+| 2 | Negative | Positive | [TO ADD] | [TO ADD] |
+| 3 | Negative | Positive | [TO ADD] | [TO ADD] |
+| 4 | Negative | Positive | [TO ADD] | [TO ADD] |
+| 5 | Positive | Negative | [TO ADD] | [TO ADD] |
+| 6 | Positive | Negative | [TO ADD] | [TO ADD] |
+| 7 | Positive | Negative | [TO ADD] | [TO ADD] |
+| 8 | Negative | Positive | [TO ADD] | [TO ADD] |
+| 9 | Positive | Negative | [TO ADD] | [TO ADD] |
+| 10 | Positive | Negative | [TO ADD] | [TO ADD] |
 
 **Proposed improvements:** For M3, test a tokenizer that preserves contractions and negation. Compare TF-IDF-based Logistic Regression against Naive Bayes, and investigate whether weighting and hyperparameter tuning improve negative-class recall and macro-F1. These are proposed changes, **not yet measured improvements**.
 
