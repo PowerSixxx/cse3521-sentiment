@@ -1,12 +1,3 @@
----
-title: "Milestone 2: Feature Engineering & Baseline Results"
-author: "Group Gamma"
-date: "November 18, 2026"
-output:
-  pdf_document:
-    latex_engine: xelatex
-geometry: margin=0.75in
----
 # Milestone 2: Feature Engineering & Baseline Results
 
 **CSE 3521: Survey of AI I · Autumn 2026 · Group Gamma**  
