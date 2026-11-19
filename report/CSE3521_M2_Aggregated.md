@@ -4,8 +4,6 @@
 **The Ohio State University · Data seed: 44 · Submission: November 18, 2026**  
 **GitHub repository:** https://github.com/PowerSixxx/cse3521-sentiment
 
-> **Report status:** Completed findings are populated from the team's M2 notes. Bracketed `[TO ADD]` fields require verification or insertion before PDF submission. Target length: **3–5 pages** after figures are inserted.
-
 ## 1. Feature Engineering Report
 
 ### Dataset and preprocessing
@@ -15,7 +13,7 @@ We use a 50,000-review sample of Amazon Fine Food Reviews, selected with random 
 | Representation | Method | Vocabulary / dimension | Purpose |
 |---|---|---|---|
 | Bag of Words (BoW) | Unigram and bigram counts | Up to **50,000 terms**; actual fitted size: **[TO ADD]** | Interpretable counts for Multinomial Naive Bayes |
-| TF-IDF | **[TO ADD: exact n-gram range, preprocessing, weighting settings]** | **[TO ADD: fitted vocabulary size]** | Weight informative words relative to common terms |
+| TF-IDF | N-gram range (1, 2), minimum doc frequency is 2, max features: 50000 | Trained on 42848 reviews, training matrix density: 0.1934%, tested on 8570 reviews. | Weight informative words relative to common terms |
 
 ### Most informative BoW features
 
@@ -109,6 +107,3 @@ We examined five reviews misclassified by Multinomial Naive Bayes. A recurring d
 
 **Andrew Kobasko — Project Lead and ML Engineer (deep).** Compiled M2 report, designed new iteration data cleaning script to prepare data frame for FFNN, conducted error analysis as well.
 
----
-
-**Submission checklist:** [ ] Add actual BoW and TF-IDF fitted dimensions  · [ ] Add TF-IDF top-10 terms  · [ ] Insert feature figure  · [ ] Include confusion-matrix image  · [ ] Add 5–10 actual misclassified review examples  · [ ] Check PDF is 3–5 pages  · [ ] Verify GitHub link and push updated repository.
