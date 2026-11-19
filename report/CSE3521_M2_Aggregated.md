@@ -66,22 +66,17 @@ The classical baseline is **Multinomial Naive Bayes** trained on BoW unigrams an
 
 ## 3. Error Analysis
 
-The team examined **ten reviews** misclassified by Multinomial Naive Bayes. A recurring difficulty was **mixed sentiment**: a review might praise a product's taste but criticize its packaging, causing positive words to dominate even when the overall label is negative. Another issue is **negation**. Phrases such as “not very good” contain individually positive words but express negative sentiment. The current tokenization can also lose contractions: for example, “can't beat” may be represented as “can beat.”
+The team examined **ten reviews** misclassified by Multinomial Naive Bayes. A recurring difficulty was **mixed sentiment**: a review might praise a product's taste but criticize its packaging, causing positive words to dominate even when the overall label is negative. Another issue is **negation**. Phrases such as “not very good” contain individually positive words but express negative sentiment. The current tokenization can also lose contractions: for example, “can't beat” may be represented as “can beat.” Lots of the reviews contain primarily adjectives or nouns that are misspelled, this would not be corrected by the classical models.
 
 **Table 3. Misclassified review examples**
 
 | Example | True label | Predicted label | Short excerpt / review ID | Likely failure pattern |
 |---:|---|---|---|---|
-| 1 | Positive | Negative | [TO ADD] | [TO ADD] |
-| 2 | Negative | Positive | [TO ADD] | [TO ADD] |
-| 3 | Negative | Positive | [TO ADD] | [TO ADD] |
-| 4 | Negative | Positive | [TO ADD] | [TO ADD] |
-| 5 | Positive | Negative | [TO ADD] | [TO ADD] |
-| 6 | Positive | Negative | [TO ADD] | [TO ADD] |
-| 7 | Positive | Negative | [TO ADD] | [TO ADD] |
-| 8 | Negative | Positive | [TO ADD] | [TO ADD] |
-| 9 | Positive | Negative | [TO ADD] | [TO ADD] |
-| 10 | Positive | Negative | [TO ADD] | [TO ADD] |
+| 1 | Positive | Negative | After trying other methods without success, I bought these traps based on Amazon's customer reviews and the price... | Lacked distinct positive words in text, 'without' possible skewed result to negative |
+| 2 | Negative | Positive | Tortilla Land can no longer claim their tortillas are healthy. Tortilla Land have integrity and get rid of the sugar... | Classical model does not understand keywords in context, words such as health and integrity seem as positive without context |
+| 3 | Negative | Positive | That isn't what chocolate chip cookies should be about. The oatmeal version of these cookies is much better... | Classical model does not understand word context, phrases such as 'much better' would be indicated as positive in the model but in-fact in context is negative |
+| 4 | Negative | Positive | I love the regular of this type of oatmeal and made the mistake of ordering such a big quantity of this assuming the family and I found like it. We dont. | Classical model does not understand words in context, in this case the phrase 'I found like it' would weigh more positive; however, it is negative in context.|
+| 5 | Positive | Negative | They came in a timely manner and nothing was wrong with them. They tasted just like they should and weren't squished.... | Classical model does not understand words in context, words such as 'wrong' and 'weren't' lean on negative but in context is actually postiive |
 
 **Proposed improvements:** For M3, test a tokenizer that preserves contractions and negation. Compare TF-IDF-based Logistic Regression against Naive Bayes, and investigate whether weighting and hyperparameter tuning improve negative-class recall and macro-F1. These are proposed changes, **not yet measured improvements**.
 
