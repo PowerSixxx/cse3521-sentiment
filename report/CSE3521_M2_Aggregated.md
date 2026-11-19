@@ -38,16 +38,26 @@ The team's Naive Bayes results identify the following terms as informative for e
 
 ### Most informative TF-IDF features
 
-**[TO ADD: Explain how informative terms were ranked for TF-IDF. Insert top-10 positive and top-10 negative terms, or explicitly state if the same model weights were used.]**
+Below represents the TF-IDF most distinctive terms based on our training dataset. The rank order is from 1 through 10, where 1 represents the most distinctive for positive TF-IDF terms, and 1 represents the most distinctive term for negative TF-IDF terms. Individual words are not always included, for example, one of the results for the most distinct negative TF-IDF term is 'it was', this is a combined term as 'it' on its own does not provide much semantic meaning. Where more meaning is explained when combined the following word together. Combining these terms also reduces the frequency as function words occur commonly in sentence construction.
 
 | Rank | Positive TF-IDF term | Negative TF-IDF term |
 |---:|---|---|
-| 1–10 | **[TO ADD: 10 ranked terms]** | **[TO ADD: 10 ranked terms]** |
+| 1 | great | not |
+| 2 | love | was |
+| 3 | best | were |
+| 4 | the best | disappointed |
+| 5 | delicious | bad |
+| 6 | good | would |
+| 7 | perfect | had |
+| 8 | this is | money |
+| 9 | is great | it was |
+| 10 | loves | be |
+
+Looking at the results, regardless, there contains a large number of function words, or stop words. Which semantically do not guarantee correlation with positive or negative sentiment. This is a result due to high occurrences. A possible improvement would include to only conduct TF-IDF on nouns, adjectives, and verbs.
+
 
 **Figure 1. Feature-space visualization.**  
-`![Figure 1: TF-IDF or BoW feature visualization](figures/[TO_ADD_FEATURE_FIGURE].png)`
-
-**[TO ADD: Insert one completed feature visualization (e.g., top-term frequencies or PCA scatter) and 1–2 sentences explaining what it shows. Baowen's progress log reports that two feature figures have been prepared.]**
+![Figure 1: TF-IDF or BoW feature visualization](figures/m2_tfidf_top_terms.png)
 
 ## 2. Baseline Results
 
@@ -75,8 +85,8 @@ The team examined **ten reviews** misclassified by Multinomial Naive Bayes. A re
 | 1 | Positive | Negative | After trying other methods without success, I bought these traps based on Amazon's customer reviews and the price... | Lacked distinct positive words in text, 'without' possible skewed result to negative |
 | 2 | Negative | Positive | Tortilla Land can no longer claim their tortillas are healthy. Tortilla Land have integrity and get rid of the sugar... | Classical model does not understand keywords in context, words such as health and integrity seem as positive without context |
 | 3 | Negative | Positive | That isn't what chocolate chip cookies should be about. The oatmeal version of these cookies is much better... | Classical model does not understand word context, phrases such as 'much better' would be indicated as positive in the model but in-fact in context is negative |
-| 4 | Negative | Positive | I love the regular of this type of oatmeal and made the mistake of ordering such a big quantity of this assuming the family and I found like it. We dont. | Classical model does not understand words in context, in this case the phrase 'I found like it' would weigh more positive; however, it is negative in context.|
-| 5 | Positive | Negative | They came in a timely manner and nothing was wrong with them. They tasted just like they should and weren't squished.... | Classical model does not understand words in context, words such as 'wrong' and 'weren't' lean on negative but in context is actually postiive |
+| 4 | Negative | Positive | I love the regular of this type of oatmeal and made the mistake of ordering such a big quantity of this assuming the family and I found like it. We dont... | Classical model does not understand words in context, in this case the phrase 'I found like it' would weigh more positive; however, it is negative in context.|
+| 5 | Positive | Negative | They came in a timely manner and nothing was wrong with them. They tasted just like they should and weren't squished.... | Classical model does not understand words in context, words such as 'wrong' and 'weren't' lean on negative but in context is actually positive |
 
 **Proposed improvements:** For M3, test a tokenizer that preserves contractions and negation. Compare TF-IDF-based Logistic Regression against Naive Bayes, and investigate whether weighting and hyperparameter tuning improve negative-class recall and macro-F1. These are proposed changes, **not yet measured improvements**.
 
