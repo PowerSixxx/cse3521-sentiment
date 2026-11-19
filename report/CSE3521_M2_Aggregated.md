@@ -1,6 +1,6 @@
 # Milestone 2: Feature Engineering & Baseline Results
 
-**CSE 3521: Survey of AI I · Autumn 2026 · Group Gamma**  
+**CSE 3521: Survey of AI · Autumn 2026 · Group Gamma**  
 **The Ohio State University · Data seed: 44 · Submission: November 18, 2026**  
 **GitHub repository:** https://github.com/PowerSixxx/cse3521-sentiment
 
@@ -32,7 +32,7 @@ The team's Naive Bayes results identify the following terms as informative for e
 | 9 | yum yum | two stars |
 | 10 | great too | emerald forest |
 
-**Interpretation:** Some informative terms are clearly sentiment-bearing (for example, “false advertising” and “yum yum”), while others suggest tokenization artifacts or dataset-specific associations (for example, “best ve” and “can beat”). The latter motivate closer examination of contraction handling.
+**Interpretation:** Some informative terms are clearly sentiment-bearing (for example, “false advertising” and “yum yum”), some of the other sentiment tokens are clearly artifacts, either poor tokenization due to underlying dataset inconsistency (for example, “best ve” and “can beat”). The results suggest that the reviews need to be standardized for language, as some words contain white spaces where they should not be.
 
 ### Most informative TF-IDF features
 
