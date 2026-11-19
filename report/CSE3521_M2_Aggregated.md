@@ -12,7 +12,7 @@ We use a 50,000-review sample of Amazon Fine Food Reviews, selected with random 
 
 | Representation | Method | Vocabulary / dimension | Purpose |
 |---|---|---|---|
-| Bag of Words (BoW) | Unigram and bigram counts | Up to **50,000 terms**; actual fitted size: **[TO ADD]** | Interpretable counts for Multinomial Naive Bayes |
+| Bag of Words (BoW) | Unigram and bigram counts | Up to **50,000 terms**; actual fitted size: 50000 | Interpretable counts for Multinomial Naive Bayes |
 | TF-IDF | N-gram range (1, 2), minimum doc frequency is 2, max features: 50000 | Trained on 42848 reviews, training matrix density: 0.1934%, tested on 8570 reviews. | Weight informative words relative to common terms |
 
 ### Most informative BoW features
