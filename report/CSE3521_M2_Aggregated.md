@@ -76,7 +76,7 @@ The classical baseline is **Multinomial Naive Bayes** trained on BoW unigrams an
 
 ## 3. Error Analysis
 
-The team examined **ten reviews** misclassified by Multinomial Naive Bayes. A recurring difficulty was **mixed sentiment**: a review might praise a product's taste but criticize its packaging, causing positive words to dominate even when the overall label is negative. Another issue is **negation**. Phrases such as “not very good” contain individually positive words but express negative sentiment. The current tokenization can also lose contractions: for example, “can't beat” may be represented as “can beat.” Lots of the reviews contain primarily adjectives or nouns that are misspelled, this would not be corrected by the classical models.
+We examined five reviews misclassified by Multinomial Naive Bayes. A recurring difficulty was mixed sentiment: a review might praise a product's taste but criticize its packaging, causing positive words to dominate even when the overall label is negative. Another issue is **negation**. Phrases such as “not very good” contain individually positive words but express negative sentiment. The current tokenization can also lose contractions: for example, “can't beat” may be represented as “can beat.” Lots of the reviews contain primarily adjectives or nouns that are incorrectly spelled, this would not be corrected by the classical models. Lastly, many of the models include stop and function words which do not add much semantic meaning to the review sentiment. This skews the results, a suggested improvement is to only conduct classical methods on nouns, verbs, and adjectives.
 
 **Table 3. Misclassified review examples**
 
@@ -88,28 +88,26 @@ The team examined **ten reviews** misclassified by Multinomial Naive Bayes. A re
 | 4 | Negative | Positive | I love the regular of this type of oatmeal and made the mistake of ordering such a big quantity of this assuming the family and I found like it. We dont... | Classical model does not understand words in context, in this case the phrase 'I found like it' would weigh more positive; however, it is negative in context.|
 | 5 | Positive | Negative | They came in a timely manner and nothing was wrong with them. They tasted just like they should and weren't squished.... | Classical model does not understand words in context, words such as 'wrong' and 'weren't' lean on negative but in context is actually positive |
 
-**Proposed improvements:** For M3, test a tokenizer that preserves contractions and negation. Compare TF-IDF-based Logistic Regression against Naive Bayes, and investigate whether weighting and hyperparameter tuning improve negative-class recall and macro-F1. These are proposed changes, **not yet measured improvements**.
-
 ## 4. Updated Timeline
 
 | Dates | Milestone | Responsibilities |
 |---|---|---|
-| Nov 11–18 | **M2** (extended to Wed Nov 18) | **Henry:** cleaning, deduplication, split, majority baseline, Naive Bayes on BoW. **Baowen:** seed-44 sample, Streamlit skeleton, TF-IDF and feature figures. **Tarun:** error analysis and M2 report. **Andrew:** review revised timeline. |
-| Nov 19–22 | **M3** (Sun Nov 22) | **Henry:** TF-IDF Logistic Regression and comparison. **Andrew:** FFNN training and loss curves. **Baowen:** second app model and Streamlit Cloud deployment. **Tarun:** README reproducibility steps. **Andrew + Tarun:** comparison table and M3 report. |
+| Nov 11–18 | **M2** (extended to Wed Nov 18) | **Henry:** Full implementation of all classical models and providing training model. **Baowen:** seed-44 sample, Streamlit skeleton, running statistics on classical models (feature engineering). **Tarun:** Error analysis, validate data cleaning methods for accuracy. **Andrew:** Review revised timeline, prepare compressive data cleaning for FFNN, write up M2 checkpoint document |
+| Nov 19–22 | **M3** (Sun Nov 22) | **Henry:** TF-IDF Logistic Regression and comparison. **Andrew:** FFNN training and loss curves. **Baowen:** second app model and Streamlit Cloud deployment. **Tarun:** README reproducibility steps. **Andrew + Tarun:** comparison table and M3 report.|
 | Nov 23–29 | **M4** (Sun Nov 29) | **Baowen:** final deployment. **Tarun:** final report. **Andrew:** slides. **All:** contribution paragraphs and proofreading. |
 | Nov 30–Dec 2 | **Live demo** | **All:** rehearse 8-minute demo and Q&A. |
 
-**Scope changes and rationale:** TF-IDF moved from Tarun to Baowen because Baowen finished the app skeleton early and could complete the second feature representation. The FFNN moved from M2 to M3 because TF-IDF features were only ready on Nov 17; DistilBERT remains a stretch goal. Negation-aware tokenization was added to M3 after error analysis identified contraction-handling issues.
+**Scope changes and rationale:**  The FFNN moved from M2 to M3 because TF-IDF features were only ready on Nov 17; DistilBERT remains a stretch goal. Negation-aware tokenization was added to M3 after error analysis identified contraction-handling issues. The new data cleaning approach will be implemented for upcoming models. Current results are based on initial data cleaning methods.
 
 ## 5. Individual Progress Log
 
-**Baowen Liu — App Engineer.** Since M1, Baowen generated the shared seed-44 sample and built the Streamlit app skeleton (`app.py`), which loads the saved Naive Bayes model and predicts sentiment from pasted text. Baowen also built the TF-IDF representation in `notebooks/feature_engineering.ipynb`, including its vocabulary size, top-10 terms for each class, and two feature figures. Next: add a second model to the app and deploy it to Streamlit Community Cloud.
+**Baowen Liu — App Engineer.** 
 
-**Henry Benner — ML Engineer (classical).** Since M1, Henry built `notebooks/classical_models.ipynb` covering data cleaning, deduplication, the stratified 80/20 split, the majority-class baseline, and cross-validated Multinomial Naive Bayes on BoW (α = 0.5). Naive Bayes achieved **91.8%** test accuracy versus **84.0%** for the majority baseline. Next: train and tune Logistic Regression on TF-IDF and compare results.
+**Henry Benner — ML Engineer (classical).** 
 
-**Tarun Shivakumar — Data Engineer and Analyst / Writer.** Since M1, Tarun prepared and uploaded the final M1 charter PDF. For M2, Tarun is writing the error analysis and assembling the report. Next: document reproducibility steps in the README for M3.
+**Tarun Shivakumar — Data Engineer and Analyst / Writer.** 
 
-**Andrew Kobasko — Project Lead and ML Engineer (deep).** Since M1, Andrew coordinated the M2 plan and reviewed the revised timeline. Next: build and train the feedforward neural network on TF-IDF features and plot training and validation loss curves for M3.
+**Andrew Kobasko — Project Lead and ML Engineer (deep).** Compiled M2 report, designed new iteration data cleaning script to prepare data frame for FFNN, conducted error analysis as well.
 
 ---
 
