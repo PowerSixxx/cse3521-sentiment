@@ -70,7 +70,13 @@ The classical baseline is **Multinomial Naive Bayes** trained on BoW unigrams an
 
 ![Figure 1. Naive Bayes Confusion Matrix](figures/m2_nb_confusion_matrix.png){width=65%}
 
-**Interpretation:** Naive Bayes reaches **91.77% test accuracy**, compared with **84.00%** for the majority-class baseline, an improvement of **7.77 percentage points**. The majority baseline fails to identify any negative reviews (negative recall and F1 both zero). Naive Bayes identifies **79.87%** of negative reviews (negative F1 = **0.7565**), demonstrating meaningful learning beyond class frequency alone. Its remaining errors, especially on negative reviews, motivate further model and feature improvements.
+**Interpretation:** Our Multinomial Naive Bayes model had an accuracy of 91.77% compared with 84.00% for the majority-class baseline. This shows that our Naive Bayes model performed better overall, improving accuracy by 7.77 percentage points.
+
+The majority-class baseline always predicts positive sentiment, so it fails to identify negative reviews. Its negative-class recall and F1-score are both zero.
+
+Naive Bayes achieved a negative-class recall of 79.87% and a negative-class F1-score of 0.7565. This indicates that the model can identify a majority of negative reviews rather than always predicting the positive class.
+
+These results show that Naive Bayes can learn relationships between word frequencies and sentiment. However, the model still makes mistakes when identifying negative reviews, meaning there is room for improvement.
 
 ## 3. Error Analysis
 
@@ -99,11 +105,11 @@ We examined five reviews misclassified by Multinomial Naive Bayes. A recurring d
 
 ## 5. Individual Progress Log
 
-**Baowen Liu — App Engineer.** 
+**Baowen Liu — App Engineer.** Since M1, I generated the shared seed-44 sample and built the Streamlit app skeleton (app.py), which loads our saved Naive Bayes model and predicts the sentiment of a pasted review. I also built the TF-IDF representation in notebooks/feature_engineering.ipynb, with its vocabulary size, top-10 terms for each class, and two feature figures. Next, I will add the second model to the app and deploy it to Streamlit Community Cloud.
 
-**Henry Benner — ML Engineer (classical).** 
+**Henry Benner — ML Engineer (classical).** Since Milestone 1, I built notebooks/classical_models.ipynb. This includes data cleaning and deduplication, a stratified 80/20 train/test split, a majority-class baseline, and a Multinomial Naive Bayes model that uses Bag of Words. I trained the Naive Bayes model using cross-validation and found that the best alpha ended up being 0.5. My Naive Bayes model achieved 91.8% test accuracy compared to 84% for the majority-class baseline. On top of this, I worked on implementing Logistic Regression using TF-IDF features and saving the trained model so it can be used later in our Streamlit application. Following this, I will finalize the Logistic Regression results and compare its performance against Naive Bayes.
 
-**Tarun Shivakumar — Data Engineer and Analyst / Writer.** 
+**Tarun Shivakumar — Data Engineer and Analyst / Writer.** Since M1, Tarun prepared and uploaded the final M1 charter PDF. For M2 he worked with Andrew to do error analysis and assist in the new iteration data cleaning. 
 
-**Andrew Kobasko — Project Lead and ML Engineer (deep).** Compiled M2 report, designed new iteration data cleaning script to prepare data frame for FFNN, conducted error analysis as well.
+**Andrew Kobasko — Project Lead and ML Engineer (deep).** Compiled final M2 report draft, ensured that all components of the M2 checkpoint are met and complete. Designed new iteration data cleaning script to prepare data frame for FFNN, conducted deep error analysis and checking edge cases for model inaccuracies. 
 
