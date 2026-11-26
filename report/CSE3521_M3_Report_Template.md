@@ -36,20 +36,18 @@ The FFNN model is the most effective; however, it comes at a significant price o
 
 ### Model architecture
 
-Our planned deep model is a **Feedforward Neural Network (FFNN)** for binary sentiment classification.
-
-[Confirm the implemented architecture and explain why it was selected. Describe the input representation, hidden layers, activation functions, output layer, and regularization. If another modern model was used, replace the FFNN description accordingly.]
+Our planned deep model is a **Feedforward Neural Network (FFNN) /w Hyperparameter Search** for binary sentiment classification.
 
 | Component | Configuration |
 |---|---|
-| Input representation and dimension | [Insert] |
-| Hidden layers and units | [Insert] |
-| Activation functions | [Insert] |
-| Output layer | [Insert] |
-| Loss function | [Insert] |
-| Optimizer and learning rate | [Insert] |
-| Batch size and epochs | [Insert] |
-| Regularization / early stopping | [Insert] |
+| Input representation and dimension | TF-IDF feature vectors; dimension determined by the fitted vocabulary size |
+| Hidden layers and units | 2 fully connected hidden layers with 64 and 32 neurons, respectively |
+| Activation functions | 	ReLU for both hidden layers; sigmoid for output probability during inference |
+| Output layer | Single neuron producing a binary classification logit; classification threshold of 0.50 |
+| Loss function | Class-weighted binary cross-entropy with logits (BCEWithLogitsLoss), using balanced class weights |
+| Optimizer and learning rate | AdamW optimizer with a learning rate of 0.0001 |
+| Batch size and epochs | Batch size of 256; maximum of 50 epochs |
+| Regularization / early stopping | Dropout of 30% and 20% for the respective hidden layers; weight decay of 0.074989421; early stopping with a patience of 5 epochs based on validation loss |
 
 ### Training and validation results
 
