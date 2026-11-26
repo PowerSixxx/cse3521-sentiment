@@ -80,9 +80,9 @@ The app opens at http://localhost:8501 and loads the trained pipelines in `model
 
 | Tab | What it shows |
 |---|---|
-| 🔮 Live prediction | Paste a review and see every model's prediction side by side, with confidence and the words that drove each prediction |
-| 📊 Model performance | Test-set accuracy, macro precision, recall, F1, training time and a confusion matrix per model (read from `models/model_metrics.json`) |
-| ℹ️ About the data | Dataset, label scheme, and how the models work |
+| Live prediction | Paste a review and see every model's prediction side by side, with confidence and the words that drove each prediction |
+| Model performance | Test-set accuracy, macro precision, recall, F1, training time and a confusion matrix per model (read from `models/model_metrics.json`) |
+| About the data | Dataset, label scheme, and how the models work |
 
 After retraining a model, refresh the metrics the app shows with:
 

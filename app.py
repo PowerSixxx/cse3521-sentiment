@@ -124,7 +124,7 @@ def set_example(text: str):
 
 
 # ---------------------------------------------------------------- page layout
-st.set_page_config(page_title="Food Review Sentiment", page_icon="🍪", layout="wide")
+st.set_page_config(page_title="Food Review Sentiment", layout="wide")
 
 models, missing = load_models()
 clean, cleaner_name = load_cleaner()
@@ -144,16 +144,16 @@ with st.sidebar:
     )
     st.subheader("Models loaded")
     for name in models:
-        st.write(f"✅ {name}")
+        st.write(f"- {name}")
     for filename in missing:
-        st.write(f"⚠️ missing `models/{filename}`")
+        st.write(f"- missing `models/{filename}`")
     st.caption(f"Input cleaning: {cleaner_name}")
     st.caption("CSE 3521 · Autumn 2026 · Group Gamma")
 
-st.title("🍪 Food Review Sentiment")
+st.title("Food Review Sentiment")
 
 tab_predict, tab_perf, tab_about = st.tabs(
-    ["🔮 Live prediction", "📊 Model performance", "ℹ️ About the data"]
+    ["Live prediction", "Model performance", "About the data"]
 )
 
 # ---------------------------------------------------------------- tab 1
@@ -187,9 +187,9 @@ with tab_predict:
                 with col:
                     st.subheader(name)
                     if label == "positive":
-                        st.success(f"👍 Positive  ·  {p_pos:.1%} confident")
+                        st.success(f"Positive  ·  {p_pos:.1%} confident")
                     else:
-                        st.error(f"👎 Negative  ·  {1 - p_pos:.1%} confident")
+                        st.error(f"Negative  ·  {1 - p_pos:.1%} confident")
                     st.progress(float(p_pos), text=f"P(positive) = {p_pos:.3f}")
 
                     contrib = word_contributions(model, text)
