@@ -49,6 +49,16 @@ Our planned deep model is a **Feedforward Neural Network (FFNN) /w Hyperparamete
 | Batch size and epochs | Batch size of 256; maximum of 50 epochs |
 | Regularization / early stopping | Dropout of 30% and 20% for the respective hidden layers; weight decay of 0.074989421; early stopping with a patience of 5 epochs based on validation loss |
 
+Design Choices:
+1. TF-IDF feature vectors: For presentation and consistency purposes, we wanted to utilize an existing TF-IDF approach utilized in combination with logistic-regression in order to accurately interpret cost benefits between models.
+2. Hidden Layers & Units: Generally, the design choice was to keep the width and depth small as the FFNN complexity is minimal with a TF-IDF approach. A simpler approach is easier to compute, also based on hyperparameter search data, two hidden layers is most effective.
+3. Activation Functions: ReLU allows for non-linear relationship decision boundaries and sigmoid output provides an interpretable result.
+4. Output layer: We kept the binary classification generic, we did not want to penalize or encourage the boundary towards negative or positive sentiment.
+5. Loss function: This loss functions penalized negative sentiment that is predicted incorrectly heavier. This is done as there is a significant imbalance between positive and negative sentiment.
+6. Optimizer and learning rate: Hyperparameter search tuned result. Learning rate kept small to not overshoot configuration settings.
+7. Batch size and epochs: Hyperparameter search tuned result.
+8. Regularization / early stopping : Hyperparameter search tuned result.
+
 ### Training and validation results
 
 **Figure 0. Hyperparameter Search.**
