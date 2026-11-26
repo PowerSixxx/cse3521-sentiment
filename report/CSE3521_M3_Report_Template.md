@@ -3,7 +3,7 @@
 **CSE 3521: Survey of AI · Autumn 2026 · Group Gamma**  
 **The Ohio State University · Data seed: 44 · Submission: November 22, 2026**  
 **GitHub repository:** https://github.com/PowerSixxx/cse3521-sentiment  
-**Streamlit deployment:** [Insert URL or indicate local prototype]
+**Streamlit deployment:** https://cse3521-sentiment.streamlit.app
 
 ## 1. Model Comparison
 
@@ -104,9 +104,9 @@ streamlit run app.py
 
 The app opens at `http://localhost:8501`. The model files are committed to `models/`, so the app runs without retraining or downloading the dataset.
 
-**Deployment status:** Running locally. The app will be deployed to Streamlit Community Cloud from this repository (`main` branch, entry point `app.py`, dependencies from `requirements.txt`) and will be live for M4.
+**Deployment status:** Deployed to Streamlit Community Cloud from this repository (`main` branch, entry point `app.py`, Python 3.12, dependencies from `requirements.txt`). Every push to `main` redeploys the app automatically.
 
-**Deployment URL (target):** https://cse3521-sentiment.streamlit.app
+**Deployment URL:** https://cse3521-sentiment.streamlit.app
 
 ## 4. Reproducibility Note
 
@@ -142,7 +142,7 @@ pip install -r requirements.txt
 
 ## 5. Individual Progress Log
 
-**Baowen Liu — App Engineer.** Since M2, I extended the Streamlit app from a single Naive Bayes prediction page into a three-tab prototype. The Live prediction tab now shows Naive Bayes and Logistic Regression side by side, explains each prediction with the words that pushed it toward positive or negative (also for Logistic Regression, using TF-IDF weight × coefficient), and warns when the models disagree. The Model performance tab shows the comparison table and the confusion matrices, and the About tab describes the dataset. I connected the app to the team's cleaning script so new reviews are preprocessed the same way as the training data. I also wrote `scripts/export_metrics.py`, which scores every saved model on the shared test set and writes the metrics file the app reads. Finally, I wrote the app documentation in Section 3 and took the screenshots. Before M4, I will add the FFNN to the app once its model file is saved, rerun the metrics script on the retrained models, deploy to Streamlit Community Cloud and test the live URL, and prepare the live demo segment of the presentation.
+**Baowen Liu — App Engineer.** Since M2, I extended the Streamlit app from a single Naive Bayes prediction page into a three-tab prototype. The Live prediction tab now shows Naive Bayes and Logistic Regression side by side, explains each prediction with the words that pushed it toward positive or negative (also for Logistic Regression, using TF-IDF weight × coefficient), and warns when the models disagree. The Model performance tab shows the comparison table and the confusion matrices, and the About tab describes the dataset. I connected the app to the team's cleaning script so new reviews are preprocessed the same way as the training data. I also wrote `scripts/export_metrics.py`, which scores every saved model on the shared test set and writes the metrics file the app reads. I deployed the app to Streamlit Community Cloud (https://cse3521-sentiment.streamlit.app), wrote the app documentation in Section 3, and took the screenshots. Before M4, I will add the FFNN to the app once its model file is saved, rerun the metrics script on the retrained models, and prepare the live demo segment of the presentation.
 
 **Henry Benner — ML Engineer (classical).** [Describe contributions since M2, including Logistic Regression, classical model training, evaluation, and comparison. Identify remaining tasks before M4.]
 

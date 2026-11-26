@@ -4,7 +4,7 @@
 CSE 3521: Survey of Artificial Intelligence I, Autumn 2026, The Ohio State University
 
 **Group:** Gamma · **Data seed:** 44
-**Live app:** https://cse3521-sentiment.streamlit.app (target URL; deployment in progress, run locally in the meantime)
+**Live app:** https://cse3521-sentiment.streamlit.app
 
 ## Team
 
