@@ -11,7 +11,7 @@
 
 We use a seed-44 sample of 50,000 Amazon Fine Food Reviews. Reviews rated **1–2 stars** are labeled negative, and reviews rated **4–5 stars** are labeled positive; 3-star reviews are excluded.
 
-[Describe the finalized preprocessing changes since M2, including contraction handling, spelling correction, and deduplication, as applicable. Report the final dataset size, training/validation/test sizes, and confirm that all models are evaluated on the same held-out test set.]
+Since milestone 2, we've implemented additional data preprocessing to improve the accuracy of our models. First, we noticed that since the reviews a user originated, that many of the words can be misspelled or formatted incorrectly (e.g. missing apostrophe). We implemented a script that standardizes the formatting of words, especially for contraction words such as "can't", "shouldn't", and "won't" which we hypothesize would contribute to a positive or negative sentiment rating. Also, we compared words to a standard dictionary and corrected any misspelled words that fall within an acceptable limit. Words that are misspelled but multiple possible corrections or a correction could not be found reliably were kept original.  We use a stratified 80/20 train/test split (seed 44), yielding 34,278 training and 8,570 test reviews. The same held-out test set is used for the baseline comparison.
 
 ### Unified model comparison
 
