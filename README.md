@@ -42,6 +42,7 @@ We use a 50,000-review sample of the [Amazon Fine Food Reviews](https://www.kagg
 .
 ├── README.md          Project overview, team, live app URL, setup
 ├── data/              Dataset download and sampling instructions (CSV files are git-ignored)
+├── scripts/           Data cleaning script + shared preprocessing used by notebooks and app
 ├── notebooks/         Jupyter notebooks for EDA, feature engineering, model training
 ├── models/            Saved model files used by the app
 ├── app.py             Streamlit app entry point
@@ -62,15 +63,11 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-Then follow [`data/README.md`](data/README.md) to place `group_sample_seed44.csv` in `data/`.
-
-### Run the notebooks
-
-```bash
-jupyter notebook notebooks/
-```
+Then follow [`data/README.md`](data/README.md) to download `Reviews.csv` into `data/`.
 
 ### Run the app locally
+
+The trained models are already in `models/`, so the app runs without the dataset:
 
 ```bash
 streamlit run app.py
@@ -94,7 +91,45 @@ To add a new model to the app, save it in `models/` as a scikit-learn `Pipeline`
 
 ### Reproduce our results
 
-[To be completed at M3: the order to run the notebooks, how to retrain each model, and where the trained files are saved.]
+Run every command from the repository root. Each step reads only the outputs of the steps before it.
+
+**1. Get the data.** Download `Reviews.csv` from [Kaggle](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews) into `data/` ([`data/README.md`](data/README.md) has the steps and a Kaggle CLI command). Data files are git-ignored and are never committed.
+
+**2. Sample and clean.**
+
+```bash
+python scripts/clean_reviews_script_final.py
+```
+
+This draws our 50,000-review sample with seed 44 (`df.sample(n=50000, random_state=44)`, the instructor's call), cleans it, and writes:
+
+| File | Contents |
+|---|---|
+| `data/group_sample_seed44.csv` | The untouched 50,000-row sample |
+| `data/group_cleaned_seed44.csv` | **The only file models read.** Cleaned `Text`, `Sentiment` label, shared `split` (train/test), `is_val` flag |
+| `data/group_audit_seed44.csv` | Every word the spelling/contraction step changed |
+| `data/group_report_seed44.json` | Row counts at each step, split sizes, correction statistics |
+
+**Check that your data matches ours.** The script prints a warning unless the sample's Score counts for 1–5 stars are exactly 4,721 / 2,690 / 3,803 / 7,043 / 31,743. `group_report_seed44.json` then records the cleaned row count and the train/test sizes, which must match the numbers in our reports.
+
+**3. Train and evaluate.** Open the notebooks (`jupyter notebook notebooks/`) and use **Run All** in this order:
+
+| Order | Notebook | What it does | Writes |
+|---|---|---|---|
+| 1 | `notebooks/feature_engineering.ipynb` | Builds Bag of Words and TF-IDF, top features, feature-space figures, tokenizer ablation | `report/figures/m3_tfidf_*.png`, `report/M3_tokenizer_ablation.md` |
+| 2 | `notebooks/classical_models.ipynb` | Majority baseline, Naive Bayes (BoW) and Logistic Regression (TF-IDF), tuned by cross-validation on train only, scored on the shared test set | `models/naive_bayes_bow.joblib`, `models/logreg_tfidf.joblib`, confusion matrix, results Markdown |
+
+Every model reads `group_cleaned_seed44.csv` through `scripts/preprocessing.py` (`load_cleaned()` and `split_frames()`), so all of them use the same rows and the same 20% test set:
+
+| Split | Rows | Used for |
+|---|---|---|
+| `train` | `split == "train"` (80%) | Fitting and cross-validated tuning of classical models |
+| `fit` / `val` | train with `is_val` false / true (90% / 10% of train) | Deep model: train on `fit`, validation loss curves on `val`; tokenizer ablation |
+| `test` | `split == "test"` (20%) | Final scores for every model, used once |
+
+All randomness uses seed 44 (sampling, split, validation slice, cross-validation folds, model `random_state`). Training times in our tables were measured on a laptop CPU and will vary by machine.
+
+**4. Serve.** The models saved in `models/` are complete scikit-learn pipelines (vectorizer + classifier). `app.py` loads them and cleans every typed review with `preprocess()` from `scripts/preprocessing.py`, the same function that built the training text, so live predictions see text in the same form as the training data.
 
 ## Milestones
 

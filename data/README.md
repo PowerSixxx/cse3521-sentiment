@@ -37,7 +37,23 @@ print(f"Saved {len(sample)} rows to {out_path}")
 print(sample[["Score", "Text"]].head(3))
 ```
 
-The result is `data/group_sample_seed44.csv`, which is the only dataset all notebooks and models should read.
+The result is `data/group_sample_seed44.csv`, the untouched sample.
+
+## 3. Clean the sample (Milestone 2)
+
+```bash
+python scripts/clean_reviews_script_final.py
+```
+
+This writes `data/group_cleaned_seed44.csv`, which **every model reads** (use the `Text` column as input, `Sentiment` as the label, the `split` column for the shared 80/20 train/test split, and `is_val` for the deep model's validation slice of train). See `scripts/PREPROCESSING_updated.md` for every cleaning step and why it was chosen. The script can also sample from `Reviews.csv` itself, so step 2 is optional if you run it.
+
+Load it in a notebook with the shared helpers instead of re-cleaning or re-splitting:
+
+```python
+import sys; sys.path.insert(0, str(ROOT))          # ROOT = repository root
+from scripts.preprocessing import load_cleaned, split_frames
+splits = split_frames(load_cleaned(ROOT / 'data'))  # keys: train, fit, val, test
+```
 
 **Sanity check:** the sample has 50,000 rows, and its Score counts for 1 to 5 should be exactly 4,721 / 2,690 / 3,803 / 7,043 / 31,743. If your counts differ, your sample is not the team's sample.
 
