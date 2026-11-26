@@ -17,12 +17,12 @@ We use a seed-44 sample of 50,000 Amazon Fine Food Reviews. Reviews rated **1–
 
 **Table 1. Model performance on the held-out test set**
 
-| Model | Accuracy | Macro precision | Macro recall | Macro F1 | Training time (s) |
+| Model | Accuracy | Macro precision | Macro recall | Macro F1 | Training Time (m approx) | 
 |---|---:|---:|---:|---:|---:|
-| Majority class | — | — | — | — | — |
-| Multinomial NB (BoW) | — | — | — | — | — |
-| Logistic Regression (TF-IDF) | — | — | — | — | — |
-| Feedforward Neural Network (FFNN) | — | — | — | — | — |
+| Majority class | 0.8400 | 0.4200 | 0.5000 | 0.4565 | N/A |
+| Multinomial NB (BoW) | 0.9177 | 0.8397 | 0.8695 | 0.8535 | 1 |
+| Logistic Regression (TF-IDF) | 0.9286 | 0.8600 | 0.8900 | 0.8718 | 1 |
+| Feedforward Neural Network (FFNN) /w Hyperparameter Search | 0.9317 | 0.8650 | 0.8918 | 0.8776 | 120 |
 
 [Include one row per additional trained model. Bold the best results. Specify the hardware and whether training times include feature extraction or hyperparameter tuning. Use consistent macro-averaged metrics across models.]
 
