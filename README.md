@@ -80,7 +80,7 @@ The app opens at http://localhost:8501 and loads the trained pipelines in `model
 
 | Tab | What it shows |
 |---|---|
-| Live prediction | Paste a review and see every model's prediction side by side, with confidence and the words that drove each prediction |
+| Live prediction | Paste a review and see the predictions of Naive Bayes, Logistic Regression and the FFNN side by side, with confidence (and, for the linear models, the words that drove each prediction) |
 | Model performance | Test-set accuracy, macro precision, recall, F1, training time and a confusion matrix per model (read from `models/model_metrics.json`) |
 | About the data | Dataset, label scheme, and how the models work |
 
@@ -90,7 +90,7 @@ After retraining a model, refresh the metrics the app shows with:
 python scripts/export_metrics.py
 ```
 
-To add a new model to the app, save it as a scikit-learn `Pipeline` (vectorizer + classifier with `predict_proba`) in `models/`, then add one line to `MODELS` in `app.py` and in `scripts/export_metrics.py`.
+To add a new model to the app, save it in `models/` as a scikit-learn `Pipeline` (vectorizer + classifier with `predict_proba`) or as a PyTorch FFNN bundle that `scripts/ffnn_model.py` can load. Then add one line to `MODELS` in `app.py` and in `scripts/export_metrics.py`.
 
 ### Reproduce our results
 

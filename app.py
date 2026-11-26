@@ -14,22 +14,25 @@ import json
 import re
 from collections import Counter
 
-import joblib
 import numpy as np
 import pandas as pd
 import streamlit as st
+
+from scripts.ffnn_model import load_model
 
 ROOT = Path(__file__).resolve().parent
 MODELS_DIR = ROOT / "models"
 FIGURES_DIR = ROOT / "report" / "figures"
 METRICS_PATH = MODELS_DIR / "model_metrics.json"
 
-# Every model the app can show. To add a model, save its sklearn Pipeline
-# (vectorizer + classifier, with predict_proba) into models/ with joblib, add one
-# line here, then rerun `python scripts/export_metrics.py` to update the metrics tab.
+# Every model the app can show. To add a model, save it into models/ with joblib
+# (an sklearn Pipeline with predict_proba, or a PyTorch FFNN bundle that
+# scripts/ffnn_model.py understands), add one line here, then rerun
+# `python scripts/export_metrics.py` to update the metrics tab.
 MODELS = {
     "Multinomial Naive Bayes (BoW)": "naive_bayes_bow.joblib",
     "Logistic Regression (TF-IDF)": "logreg_tfidf.joblib",
+    "Feedforward Neural Network (TF-IDF)": "ffnn_complete.joblib",
 }
 
 EXAMPLES = {
@@ -76,7 +79,7 @@ def load_models():
     for name, filename in MODELS.items():
         path = MODELS_DIR / filename
         if path.is_file():
-            loaded[name] = joblib.load(path)
+            loaded[name] = load_model(path)
         else:
             missing.append(filename)
     return loaded, missing
@@ -96,6 +99,8 @@ def word_contributions(model, text: str, top_n: int = 5):
     Logistic Regression:  push = tfidf(word) x weight(word)
     Returns None for models that are neither (e.g. a neural network).
     """
+    if not hasattr(model, "steps"):
+        return None
     vectorizer, classifier = model.steps[0][1], model.steps[-1][1]
     classes = list(classifier.classes_)
     if hasattr(classifier, "feature_log_prob_"):
@@ -275,6 +280,7 @@ compare models by **macro F1**.
 **Models.**
 - *Multinomial Naive Bayes* on Bag-of-Words counts (unigrams + bigrams, 50k vocabulary).
 - *Logistic Regression* on TF-IDF weights (unigrams + bigrams, 50k vocabulary, balanced class weights).
+- *Feedforward Neural Network* (PyTorch) on TF-IDF weights: 50k inputs → 64 → 32 → 1, ReLU, dropout 0.3 / 0.2.
 
 **How a prediction works.** Your review is cleaned the same way as the
 training data, turned into word counts / TF-IDF weights by each model's own

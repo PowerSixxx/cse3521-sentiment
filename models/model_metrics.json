@@ -55,6 +55,24 @@
         ]
       ],
       "training_seconds": null
+    },
+    {
+      "name": "Feedforward Neural Network (TF-IDF)",
+      "accuracy": 0.9313,
+      "precision_macro": 0.8643,
+      "recall_macro": 0.8906,
+      "f1_macro": 0.8766,
+      "confusion_matrix": [
+        [
+          1139,
+          232
+        ],
+        [
+          357,
+          6842
+        ]
+      ],
+      "training_seconds": null
     }
   ]
 }
