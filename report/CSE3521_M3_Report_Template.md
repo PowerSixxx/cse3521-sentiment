@@ -22,13 +22,15 @@ Since milestone 2, we've implemented additional data preprocessing to improve th
 | Majority class | 0.8400 | 0.4200 | 0.5000 | 0.4565 | N/A |
 | Multinomial NB (BoW) | 0.9177 | 0.8397 | 0.8695 | 0.8535 | 1 |
 | Logistic Regression (TF-IDF) | 0.9286 | 0.8600 | 0.8900 | 0.8718 | 1 |
-| Feedforward Neural Network (FFNN) /w Hyperparameter Search | 0.9317 | 0.8650 | 0.8918 | 0.8776 | 120 |
-
-[Include one row per additional trained model. Bold the best results. Specify the hardware and whether training times include feature extraction or hyperparameter tuning. Use consistent macro-averaged metrics across models.]
+**| Feedforward Neural Network (FFNN) /w Hyperparameter Search | 0.9317 | 0.8650 | 0.8918 | 0.8776 | 120 |**
 
 ### Best-performing model
 
-**Interpretation:** [Identify the best-performing model using macro F1 as the primary comparison metric, or justify another metric. Quantify its improvement over the classical and majority-class baselines. Explain the differences using course concepts such as model capacity, nonlinear decision boundaries, feature representation, and sequence information where applicable. Discuss any trade-off between predictive performance and training time.]
+**Interpretation:** 
+
+The best performing model utilizing the macro F1 score would be the Feedforward Neural Network with hyperparameter search. This approach utilizes a TF-IDF vector with weights and a FFNN model to learn non-linear relationships between corresponding weights assigned to words. More precisely, it does not only account for the individual weight of a word for contributing to sentiment rating, but it accounts for instances where two different words with different associated sentiment would result in an alternate outcome. For example, "not" and "reliable" where the word "reliable" could push the sentiment towards positive. When combing both words together, the FFNN model would push the sentiment much more significantly to negative. 
+
+The FFNN model is the most effective; however, it comes at a significant price of compute cost as tuning for proper hyperparameters is expensive. A simple classification model can be handled nearly as effectively utilizing a logistic regression model on a TF-IDF vector in a practical environment. A FFNN model approach would be more practical when the dataset is substantially larger and more relationships exist within the data that the FFNN model could capture. From the perspective of compute cost, the FFNN model could be retrained quickly with additional data once the hyperparameters are set. This training time is more of an initial cost than a recurring cost. 
 
 ## 2. Deep / Modern Model Analysis
 
