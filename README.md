@@ -4,7 +4,7 @@
 CSE 3521: Survey of Artificial Intelligence I, Autumn 2026, The Ohio State University
 
 **Group:** Gamma · **Data seed:** 44
-**Live app:** [STREAMLIT URL, added at M3]
+**Live app:** https://cse3521-sentiment.streamlit.app (target URL; deployment in progress, run locally in the meantime)
 
 ## Team
 
@@ -75,6 +75,22 @@ jupyter notebook notebooks/
 ```bash
 streamlit run app.py
 ```
+
+The app opens at http://localhost:8501 and loads the trained pipelines in `models/`, so it runs without the dataset. It has three tabs:
+
+| Tab | What it shows |
+|---|---|
+| 🔮 Live prediction | Paste a review and see every model's prediction side by side, with confidence and the words that drove each prediction |
+| 📊 Model performance | Test-set accuracy, macro precision, recall, F1, training time and a confusion matrix per model (read from `models/model_metrics.json`) |
+| ℹ️ About the data | Dataset, label scheme, and how the models work |
+
+After retraining a model, refresh the metrics the app shows with:
+
+```bash
+python scripts/export_metrics.py
+```
+
+To add a new model to the app, save it as a scikit-learn `Pipeline` (vectorizer + classifier with `predict_proba`) in `models/`, then add one line to `MODELS` in `app.py` and in `scripts/export_metrics.py`.
 
 ### Reproduce our results
 
