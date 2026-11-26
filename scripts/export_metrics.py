@@ -22,10 +22,11 @@ import json
 import re
 from pathlib import Path
 
-import joblib
 import pandas as pd
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_fscore_support
 from sklearn.model_selection import train_test_split
+
+from ffnn_model import load_model
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
@@ -37,6 +38,7 @@ SEED = 44
 MODELS = {
     "Multinomial Naive Bayes (BoW)": "naive_bayes_bow.joblib",
     "Logistic Regression (TF-IDF)": "logreg_tfidf.joblib",
+    "Feedforward Neural Network (TF-IDF)": "ffnn_complete.joblib",
 }
 
 
@@ -93,7 +95,7 @@ def main():
         if not path.is_file():
             print(f"skip {name}: {path} not found")
             continue
-        model = joblib.load(path)
+        model = load_model(path)
         results.append({"name": name, **row(y_test, model.predict(X_test))})
         print(f"evaluated {name}")
 
