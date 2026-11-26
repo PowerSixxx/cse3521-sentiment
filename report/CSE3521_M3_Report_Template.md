@@ -51,11 +51,17 @@ Our planned deep model is a **Feedforward Neural Network (FFNN) /w Hyperparamete
 
 ### Training and validation results
 
+**Figure 0. Hyperparameter Search.**
+
+![Figure 0. Hyperparameter Search](figures/ffnn_hyperparameter_search.png){width=80%}
+
+First, the the FFNN model is tested against 30 different hyperparameter settings. The search starts at a random but within a reasonable range. Hyperparameters such as weight decay, learning rate, input dropout/hidden layer dropout, batch size, and hidden layer dimensions is tweaked. The hyperparameter settings are dictated the best for the settings that result in the highest macro F1 score. The macro F1 score is utilized as the balance between positive and negative sentiment is not equal. The testing first begins by shifting settings that lead to a higher F1 score, once that score is maximized, the test begins to shift hyperparameters significantly to break out of possible local maximums.  
+
 **Figure 1. Training and validation loss across epochs.**
 
 ![Figure 1. Training and validation loss curves](figures/ffnn_loss_curves.png){width=80%}
 
-**Interpretation:** [Describe how training and validation loss change over time, identify the best epoch, and discuss convergence, overfitting, or underfitting. Explain how the final model checkpoint was selected without using the held-out test set.]
+This figure is based on the selected hyperparameter settings from the previous figure. This loss curve helps understand how the model would predict with unseen data utilizing a validation data set (10% chunk from the 80% data split, remaining 20% is the test data). The best epoch or weights is determined by using the highest macro F1 score from the validation data specifically. In this case, the best epoch would be iteration 12.
 
 ### Advantages and limitations
 
