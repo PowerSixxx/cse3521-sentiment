@@ -4,12 +4,14 @@ Run locally from the repository root:
     streamlit run app.py
 """
 from pathlib import Path
-import html
-import re
 
 import joblib
 import numpy as np
 import streamlit as st
+
+# The exact cleaning used to build the training data (HTML, quotes, spelling,
+# contractions, negation commas), so live input matches what the models saw.
+from scripts.preprocessing import preprocess
 
 ROOT = Path(__file__).resolve().parent
 MODELS_DIR = ROOT / "models"
@@ -26,13 +28,6 @@ EXAMPLES = {
     "Negative": "Total waste of money. The chips arrived stale and tasted awful. I threw away the whole bag.",
     "Mixed": "The flavor is great, but the package arrived crushed and half of the cookies were broken.",
 }
-
-
-def clean_review(value: str) -> str:
-    """Same cleaning as the training notebook: unescape HTML, drop tags, squash spaces."""
-    text = html.unescape(str(value))
-    text = re.sub(r"<[^>]*>", " ", text)
-    return re.sub(r"\s+", " ", text).strip()
 
 
 @st.cache_resource
@@ -112,7 +107,7 @@ if not models:
     st.stop()
 
 if st.button("Predict sentiment", type="primary") or review:
-    text = clean_review(review)
+    text = preprocess(review)
     if not text:
         st.info("Type or paste a review above to get a prediction.")
         st.stop()

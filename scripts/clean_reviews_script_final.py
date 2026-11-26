@@ -18,13 +18,18 @@ Pipeline:
  3. Remove missing, neutral (3-star), empty, and duplicate reviews
  4. Clean HTML entities/tags and whitespace (Text and Summary)
  5. Create binary Sentiment labels (1-2 = negative, 4-5 = positive)
- 6. Assign the shared stratified 80/20 train/test split (seed 44)
+ 6. Assign the shared stratified 80/20 train/test split (seed 44), and flag a
+    stratified 10% of train as is_val for the deep model's validation curves
  7. Normalize typographic quotes (’ -> ') so contractions are consistent
  8. Apply manual spelling/contraction corrections
  9. Apply conservative dictionary corrections (URLs are never touched)
 10. Remove commas immediately following negations
 11. Validate corrections and probe non-standard language
 12. Save cleaned reviews, audit CSV, and JSON report
+
+The text-cleaning functions live in scripts/preprocessing.py, which the Streamlit
+app also imports, so a review typed into the app is cleaned exactly like the
+training data.
 
 Design decisions (see scripts/PREPROCESSING_updated.md for the full rationale):
   * Punctuation is RETAINED. Classical vectorizers drop it at tokenization time anyway,
@@ -44,107 +49,43 @@ row set and the train/test split match the M2 baseline results.
 from __future__ import annotations
 
 import argparse
-import html
 import json
 import re
 import time
 from collections import Counter
-from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from spellchecker import SpellChecker
+
+# Every text-cleaning function lives in scripts/preprocessing.py so the
+# Streamlit app and the notebooks apply exactly the same steps.
+from preprocessing import (
+    CLEANED_FILENAME,
+    DEFAULT_DATA_DIR,
+    MAX_EDIT_DISTANCE,
+    MIN_FREQUENCY_RATIO,
+    MIN_SUGGESTION_FREQUENCY,
+    MIN_WORD_LENGTH,
+    REQUIRE_UNIQUE_CANDIDATE,
+    SEED,
+    URL_RE,
+    VAL_SIZE,
+    clean_review,
+    correct_text,
+    normalize_quotes,
+)
 
 
 # ============================================================
 # CONFIGURATION
 # ============================================================
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_DATA_DIR = REPO_ROOT / "data"
-
-SEED = 44
 SAMPLE_SIZE = 50000
 TEST_SIZE = 0.20
 
-MAX_EDIT_DISTANCE = 1
-MIN_WORD_LENGTH = 5
-MIN_SUGGESTION_FREQUENCY = 100
-MIN_FREQUENCY_RATIO = 20
-REQUIRE_UNIQUE_CANDIDATE = True
-
 PROGRESS_INTERVAL = 5000
-
-
-# ============================================================
-# MANUAL CORRECTIONS
-# ============================================================
-
-# Manual corrections always take priority.
-# Mapping a word to itself preserves the original spelling.
-
-MANUAL_CORRECTIONS = {
-    "theyre": "they're",
-    "doesn": "doesn't",
-    "publix": "publix",
-    "coulnt": "couldn't",
-    "stevia": "stevia",
-
-    # Standardized contractions
-    "cant": "can't",
-    "dont": "don't",
-    "doesnt": "doesn't",
-    "didnt": "didn't",
-    "wont": "won't",
-    "wouldnt": "wouldn't",
-    "couldnt": "couldn't",
-    "shouldnt": "shouldn't",
-    "isnt": "isn't",
-    "arent": "aren't",
-    "wasnt": "wasn't",
-    "werent": "weren't",
-    "havent": "haven't",
-    "hasnt": "hasn't",
-    "hadnt": "hadn't",
-    "theyve": "they've",
-    "youre": "you're",
-    "youve": "you've",
-    "im": "i'm",
-    "ive": "i've",
-    "thats": "that's",
-    "theres": "there's"
-}
-
-
-# ============================================================
-# PROTECTED VOCABULARY
-# ============================================================
-
-PROTECTED = {
-    "no", "not", "never", "none", "nothing",
-    "neither", "nor", "cannot",
-    "can't", "don't", "doesn't", "didn't",
-    "won't", "wouldn't", "couldn't",
-    "shouldn't", "isn't", "aren't",
-    "wasn't", "weren't",
-    "bad", "good", "terrible", "excellent",
-    "awful", "great", "love", "hate",
-    "recommend", "disappointed", "disappointing",
-    "positive", "negative", "best", "worst",
-    "better", "worse", "poor", "perfect",
-    "amazing", "horrible", "delicious",
-    "disgusting", "favorite", "favourite"
-}
-
-CUSTOM_WORDS = {
-    "amazon", "kindle", "keurig", "nespresso",
-    "starbucks", "nutella", "gatorade",
-    "gluten", "decaf", "organic",
-    "vegan", "nonfat", "sugarfree",
-    "wifi", "ebook", "publix", "stevia"
-}
 
 # Common abbreviations / internet shorthand. Not corrected; only counted in the
 # report so the "no abbreviation normalizer" decision is backed by evidence.
@@ -154,271 +95,8 @@ ABBREVIATION_PROBE = {
     "w/", "w/o", "b/c", "bc", "smh", "fav", "fave", "yum", "yummm", "sooo",
 }
 
-# Match words while preserving punctuation and spacing.
-WORD_RE = re.compile(
-    r"[^\W\d_]+(?:['’][^\W\d_]+)*",
-    re.UNICODE
-)
-
-# URLs and bare domains are skipped by the corrector so links are not altered.
-URL_RE = re.compile(
-    r"(?:https?://|www\.)\S+|\b[\w.-]+\.(?:com|net|org|edu|gov)\b\S*",
-    re.IGNORECASE
-)
-
 # Letters repeated 3+ times ("sooooo", "yummmm") mark elongated, emphatic words.
 ELONGATION_RE = re.compile(r"\b\w*([a-z])\1{2,}\w*\b", re.IGNORECASE)
-
-QUOTE_TRANSLATION = str.maketrans({
-    "‘": "'", "’": "'", "‛": "'", "′": "'", "´": "'",
-    "“": '"', "”": '"', "‟": '"', "″": '"',
-})
-
-
-# ============================================================
-# TEXT CLEANING
-# ============================================================
-
-def clean_review(value):
-    """
-    Decode HTML entities, remove HTML tags,
-    and normalize whitespace.
-
-    Kept identical to clean_review() in the notebooks so that duplicate
-    detection (and therefore the row set and split) matches M2.
-    """
-    text = html.unescape(str(value))
-    text = re.sub(r"<[^>]*>", " ", text)
-    text = re.sub(r"\s+", " ", text).strip()
-    return text
-
-
-def normalize_quotes(text):
-    """Replace typographic quotes/apostrophes with ASCII ones (don’t -> don't)."""
-    return text.translate(QUOTE_TRANSLATION)
-
-
-def restore_case(original, replacement):
-    """
-    Preserve capitalization of the original word.
-    """
-    if original.isupper():
-        return replacement.upper()
-
-    if original.istitle():
-        return replacement.capitalize()
-
-    return replacement
-
-
-# ============================================================
-# SPELLCHECKER INITIALIZATION
-# ============================================================
-
-spell = SpellChecker(
-    language="en",
-    distance=MAX_EDIT_DISTANCE,
-    case_sensitive=False
-)
-
-spell.word_frequency.load_words(CUSTOM_WORDS)
-
-
-# ============================================================
-# CONSERVATIVE SPELLING CORRECTION
-# ============================================================
-
-@lru_cache(maxsize=100000)
-def get_conservative_correction(word):
-    """
-    Return corrected word and correction status.
-
-    Unknown or ambiguous words are preserved.
-    """
-
-    normalized = word.lower().replace("’", "'")
-
-    # 1. Apply manual corrections first.
-    if normalized in MANUAL_CORRECTIONS:
-
-        replacement = MANUAL_CORRECTIONS[normalized]
-
-        if replacement == normalized:
-            return word, "manual_preserved"
-
-        return (
-            restore_case(word, replacement),
-            "manual_corrected"
-        )
-
-    # 2. Preserve existing contractions.
-    if "'" in normalized:
-        return word, "protected_contraction"
-
-    # 3. Preserve short words (this also protects most abbreviations).
-    if len(normalized) < MIN_WORD_LENGTH:
-        return word, "protected_short"
-
-    # 4. Preserve sentiment words and brand names.
-    if normalized in PROTECTED or normalized in CUSTOM_WORDS:
-        return word, "protected_vocabulary"
-
-    # 5. Preserve recognized English words.
-    if not spell.unknown([normalized]):
-        return word, "known_word"
-
-    # 6. Generate spelling candidates.
-    candidates = spell.candidates(normalized)
-
-    if not candidates:
-        return word, "unknown_no_candidate"
-
-    candidates = {
-        candidate
-        for candidate in candidates
-        if candidate != normalized
-        and candidate not in PROTECTED
-        and candidate.isalpha()
-    }
-
-    if not candidates:
-        return word, "unknown_no_candidate"
-
-    # Reject ambiguous suggestions.
-    if REQUIRE_UNIQUE_CANDIDATE and len(candidates) != 1:
-        return word, "ambiguous"
-
-    best = max(
-        candidates,
-        key=lambda candidate: spell.word_frequency[candidate]
-    )
-
-    best_frequency = spell.word_frequency[best]
-    original_frequency = spell.word_frequency[normalized]
-
-    if best_frequency < MIN_SUGGESTION_FREQUENCY:
-        return word, "low_frequency"
-
-    frequency_ratio = (
-        best_frequency / max(original_frequency, 1)
-    )
-
-    if frequency_ratio < MIN_FREQUENCY_RATIO:
-        return word, "low_confidence"
-
-    return (
-        restore_case(word, best),
-        "dictionary_corrected"
-    )
-
-
-# ============================================================
-# MANUAL CONTRACTION NORMALIZATION
-# ============================================================
-
-def normalize_contractions(text):
-    """
-    Ensure all manually specified contractions are standardized.
-
-    Examples:
-        cant -> can't
-        dont -> don't
-        theyre -> they're
-    """
-
-    def replace_match(match):
-
-        original = match.group(0)
-        normalized = original.lower().replace("’", "'")
-
-        if normalized in MANUAL_CORRECTIONS:
-
-            replacement = MANUAL_CORRECTIONS[normalized]
-
-            return restore_case(original, replacement)
-
-        return original
-
-    return WORD_RE.sub(replace_match, text)
-
-
-# ============================================================
-# REMOVE COMMAS AFTER NEGATIONS
-# ============================================================
-
-NEGATIONS = [
-    "can't", "don't", "doesn't", "didn't",
-    "won't", "wouldn't", "couldn't",
-    "shouldn't", "isn't", "aren't",
-    "wasn't", "weren't", "haven't",
-    "hasn't", "hadn't"
-]
-
-NEGATION_COMMA_RE = re.compile(
-    r"\b(" +
-    "|".join(re.escape(word) for word in NEGATIONS) +
-    r"),(?=\s|$)",
-    flags=re.IGNORECASE
-)
-
-
-def normalize_negation_commas(text):
-    """
-    Remove commas immediately following negations.
-
-    Examples:
-        "I can't, believe it" -> "I can't believe it"
-        "I don't, like it" -> "I don't like it"
-        "I won't, buy it" -> "I won't buy it"
-    """
-
-    return NEGATION_COMMA_RE.sub(r"\1", text)
-
-
-# ============================================================
-# CORRECT INDIVIDUAL REVIEW
-# ============================================================
-
-def correct_review(text, row_index, audit, counts):
-    """
-    Correct individual words while preserving sentence structure,
-    punctuation, and any URLs.
-    """
-
-    def replace_match(match):
-
-        original = match.group(0)
-
-        corrected, status = get_conservative_correction(
-            original
-        )
-
-        counts[status] += 1
-
-        if corrected != original:
-
-            audit.append({
-                "row_index": row_index,
-                "original_word": original,
-                "corrected_word": corrected,
-                "status": status
-            })
-
-        return corrected
-
-    # Correct only the text between URLs; URLs are copied through unchanged.
-    pieces = []
-    last = 0
-
-    for url in URL_RE.finditer(text):
-        pieces.append(WORD_RE.sub(replace_match, text[last:url.start()]))
-        pieces.append(url.group(0))
-        counts["protected_url"] += 1
-        last = url.end()
-
-    pieces.append(WORD_RE.sub(replace_match, text[last:]))
-
-    return "".join(pieces)
 
 
 # ============================================================
@@ -586,7 +264,7 @@ def main():
 
     input_file = data_dir / "Reviews.csv"
     sample_file = data_dir / f"group_sample_seed{SEED}.csv"
-    output_file = data_dir / f"group_cleaned_seed{SEED}.csv"
+    output_file = data_dir / CLEANED_FILENAME
     audit_file = data_dir / f"group_audit_seed{SEED}.csv"
     report_file = data_dir / f"group_report_seed{SEED}.json"
 
@@ -689,6 +367,19 @@ def main():
     df["split"] = "train"
     df.loc[test_idx, "split"] = "test"
 
+    # Validation slice of TRAIN for the deep model's loss curves. A separate
+    # column (not a third split value) keeps the test set and every existing
+    # df[df["split"] == "train"] filter unchanged.
+    _, val_idx = train_test_split(
+        train_idx,
+        test_size=VAL_SIZE,
+        random_state=SEED,
+        stratify=df.loc[train_idx, "Sentiment"]
+    )
+
+    df["is_val"] = False
+    df.loc[val_idx, "is_val"] = True
+
     # --------------------------------------------------------
     # 10. PRESERVE TEXT BEFORE CORRECTION
     # --------------------------------------------------------
@@ -713,36 +404,14 @@ def main():
 
     for idx, before in enumerate(texts):
 
-        # Typographic apostrophes -> ASCII so "don’t" == "don't".
-        after = normalize_quotes(before)
-
-        if after != before:
+        if normalize_quotes(before) != before:
             quotes_normalized += 1
 
-        # Dictionary and manual corrections.
-        after = correct_review(
-            after,
-            idx,
-            audit,
-            counts
-        )
-
-        # Final contraction standardization.
-        after = normalize_contractions(after)
-
-        # Remove commas immediately after negations.
-        after, removed = NEGATION_COMMA_RE.subn(
-            r"\1",
-            after
-        )
+        # Quotes -> spelling/manual corrections -> contractions -> negation
+        # commas. The app runs the same correct_text() through preprocess().
+        after, removed = correct_text(before, idx, audit, counts)
 
         commas_removed += removed
-
-        # Safety check.
-        if not after.strip():
-            after = before
-            counts["rejected_empty"] += 1
-
         texts[idx] = after
 
         if (idx + 1) % PROGRESS_INTERVAL == 0:
@@ -839,6 +508,8 @@ def main():
             "method": "stratified_train_test_split",
             "test_size": TEST_SIZE,
             "random_state": SEED,
+            "validation_share_of_train": VAL_SIZE,
+            "validation_rows": int(df["is_val"].sum()),
             "counts": {
                 split: {
                     str(k): int(v)
@@ -934,7 +605,8 @@ def main():
     print(f"Final cleaned rows: {len(df):,}")
     print(
         f"Train / test: {int((df['split'] == 'train').sum()):,} / "
-        f"{int((df['split'] == 'test').sum()):,}"
+        f"{int((df['split'] == 'test').sum()):,} "
+        f"(of train, {int(df['is_val'].sum()):,} flagged is_val)"
     )
 
     print(
