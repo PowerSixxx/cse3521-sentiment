@@ -1,0 +1,42 @@
+import torch
+import joblib
+
+from pathlib import Path
+
+BASE_DIR = Path("C:/Users/andre/Downloads/3521PData/ffnn_results")
+
+# Load trained TF-IDF vectorizer
+tfidf = joblib.load(
+    BASE_DIR / "ffnn_tfidf_vectorizer.joblib"
+)
+
+# Load trained neural network checkpoint
+checkpoint = torch.load(
+    BASE_DIR / "ffnn_tfidf.pt",
+    map_location="cpu",
+    weights_only=True
+)
+
+# Combine both components
+bundle = {
+    "tfidf": tfidf,
+    "model_state_dict": checkpoint["model_state_dict"],
+    "input_dim": checkpoint["input_dim"],
+    "hidden_dims": [64, 32],
+    "dropout": [0.30, 0.20],
+    "classification_threshold": 0.5,
+    "class_mapping": {
+        0: "negative",
+        1: "positive"
+    },
+    "best_epoch": checkpoint["best_epoch"]
+}
+
+# Save combined model
+joblib.dump(
+    bundle,
+    BASE_DIR / "ffnn_complete.joblib",
+    compress=3
+)
+
+print("Combined model successfully saved.")

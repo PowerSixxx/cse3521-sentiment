@@ -1,0 +1,2016 @@
+
+import copy
+import time
+import random
+import json
+import gc
+import joblib
+import numpy as np
+import pandas as pd
+
+import matplotlib
+matplotlib.use("Agg")
+
+import matplotlib.pyplot as plt
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+from pathlib import Path
+from sklearn.base import clone
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    fbeta_score,
+    average_precision_score,
+    classification_report,
+    confusion_matrix,
+    ConfusionMatrixDisplay,
+    precision_recall_curve
+)
+
+# ============================================================
+# 1. CONFIGURATION
+# ============================================================
+
+BASE_DIR = Path("C:/Users/andre/Downloads/3521PData")
+
+DATA_PATH = BASE_DIR / "group_cleaned_seed44.csv"
+MODEL_PATH = BASE_DIR / "logreg_tfidf.joblib"
+
+OUTPUT_DIR = BASE_DIR / "ffnn_weight_decay_search"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+SEED = 44
+EPOCHS = 30
+PATIENCE = 5
+MIN_DELTA = 0.0001
+
+OPTIMIZATION_METRIC = "negative_f1"
+
+PREVIOUS_F1 = 0.8140556368960469
+PREVIOUS_THRESHOLD = 0.61
+
+THRESHOLDS = np.linspace(0.01, 0.99, 99)
+
+DEVICE = torch.device(
+    "cuda" if torch.cuda.is_available() else "cpu"
+)
+
+print("Device:", DEVICE)
+print("Maximum epochs:", EPOCHS)
+print("Optimization metric:", OPTIMIZATION_METRIC)
+
+
+def set_seed(seed=SEED):
+
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
+set_seed()
+
+# ============================================================
+# 2. LOAD AND SPLIT DATA
+# ============================================================
+
+df = pd.read_csv(DATA_PATH)
+
+df = df.dropna(
+    subset=["Text", "Sentiment"]
+).copy()
+
+df["Sentiment"] = (
+    df["Sentiment"]
+    .astype(str)
+    .str.strip()
+    .str.lower()
+)
+
+df = df[
+    df["Sentiment"].isin(["negative", "positive"])
+].copy()
+
+X = df["Text"].astype(str).to_numpy()
+
+y = df["Sentiment"].map({
+    "negative": 0,
+    "positive": 1
+}).to_numpy(dtype=np.int64)
+
+# Reserve 20% for final testing
+
+X_dev, X_test, y_dev, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.20,
+    random_state=SEED,
+    stratify=y
+)
+
+# 70% training, 10% validation, 20% testing
+
+X_train, X_val, y_train, y_val = train_test_split(
+    X_dev,
+    y_dev,
+    test_size=0.125,
+    random_state=SEED,
+    stratify=y_dev
+)
+
+print("\nDATASET DISTRIBUTION")
+
+for name, labels in [
+    ("Training", y_train),
+    ("Validation", y_val),
+    ("Testing", y_test)
+]:
+
+    negatives = np.sum(labels == 0)
+    positives = np.sum(labels == 1)
+
+    print(
+        f"{name:12s} | "
+        f"Total: {len(labels):6d} | "
+        f"Negative: {negatives:6d} "
+        f"({negatives / len(labels):.2%}) | "
+        f"Positive: {positives:6d} "
+        f"({positives / len(labels):.2%})"
+    )
+
+NEGATIVE_COUNT = int(np.sum(y_train == 0))
+POSITIVE_COUNT = int(np.sum(y_train == 1))
+
+# ============================================================
+# 3. TF-IDF FEATURE EXTRACTION
+# ============================================================
+
+baseline_pipeline = joblib.load(MODEL_PATH)
+
+tfidf = clone(
+    baseline_pipeline.named_steps["tfidf"]
+)
+
+# Fit vocabulary exclusively on training data
+
+X_train = tfidf.fit_transform(
+    X_train
+).astype(np.float32).tocsr()
+
+X_val = tfidf.transform(
+    X_val
+).astype(np.float32).tocsr()
+
+X_test = tfidf.transform(
+    X_test
+).astype(np.float32).tocsr()
+
+INPUT_DIM = X_train.shape[1]
+
+print("\nTF-IDF input dimension:", INPUT_DIM)
+print("TF-IDF ngram range:", tfidf.ngram_range)
+
+joblib.dump(
+    tfidf,
+    OUTPUT_DIR / "ffnn_tfidf_vectorizer.joblib"
+)
+
+# ============================================================
+# 4. BASELINE AND WEIGHT DECAY EXPERIMENTS
+# ============================================================
+
+BASE_CONFIG = {
+    "hidden_dims": [64, 32],
+    "learning_rate": 0.0001,
+    "weight_decay": 0.074989421,
+    "input_dropout": 0.0,
+    "hidden_dropout": [0.30, 0.20],
+    "batch_size": 256,
+    "negative_weight": 2.0,
+    "loss_type": "bce",
+    "gamma": 0.0,
+    "early_stopping": "metric"
+}
+
+WEIGHT_DECAYS = [
+    0.074989421,  # Original baseline
+    0.007498942,  # 10x lower
+    0.037494711,  # 2x lower
+    0.149978842,  # 2x higher
+    0.299957684   # 4x higher
+]
+
+EXPERIMENTS = []
+
+for i, decay in enumerate(
+    WEIGHT_DECAYS,
+    start=1
+):
+
+    config = copy.deepcopy(BASE_CONFIG)
+
+    config["weight_decay"] = decay
+
+    EXPERIMENTS.append({
+        "name": f"{i:02d}_decay_{decay:.9f}",
+        "config": config
+    })
+
+print("\nWEIGHT DECAY SEARCH")
+
+for experiment in EXPERIMENTS:
+
+    print(
+        experiment["name"],
+        experiment["config"]["weight_decay"]
+    )
+
+print("\nTotal experiments:", len(EXPERIMENTS))
+
+# ============================================================
+# 5. FFNN ARCHITECTURE
+# ============================================================
+
+
+class SentimentFFNN(nn.Module):
+
+    def __init__(self, input_dim, config):
+
+        super().__init__()
+
+        layers = []
+
+        if config["input_dropout"] > 0:
+
+            layers.append(
+                nn.Dropout(config["input_dropout"])
+            )
+
+        previous_dim = input_dim
+
+        for hidden_dim, dropout in zip(
+            config["hidden_dims"],
+            config["hidden_dropout"]
+        ):
+
+            layers.append(
+                nn.Linear(previous_dim, hidden_dim)
+            )
+
+            layers.append(nn.ReLU())
+
+            if dropout > 0:
+
+                layers.append(
+                    nn.Dropout(dropout)
+                )
+
+            previous_dim = hidden_dim
+
+        layers.append(
+            nn.Linear(previous_dim, 1)
+        )
+
+        self.network = nn.Sequential(*layers)
+
+    def forward(self, x):
+
+        return self.network(x).squeeze(-1)
+
+
+# ============================================================
+# 6. WEIGHTED BINARY CROSS-ENTROPY
+# ============================================================
+
+
+def calculate_loss(logits, targets, config):
+
+    bce = F.binary_cross_entropy_with_logits(
+        logits,
+        targets,
+        reduction="none"
+    )
+
+    negative_weight = config["negative_weight"]
+
+    # Normalize weights to maintain an average
+    # training sample weight of 1.
+
+    normalizer = (
+        NEGATIVE_COUNT * negative_weight
+        + POSITIVE_COUNT
+    ) / len(y_train)
+
+    weights = torch.where(
+        targets == 0,
+        negative_weight,
+        1.0
+    ) / normalizer
+
+    if config["loss_type"] == "focal":
+
+        pt = torch.exp(-bce)
+
+        focal_factor = (
+            1.0 - pt
+        ) ** config["gamma"]
+
+        losses = focal_factor * bce * weights
+
+    else:
+
+        losses = bce * weights
+
+    return losses.mean()
+
+
+# ============================================================
+# 7. BATCH GENERATOR
+# ============================================================
+
+
+def get_batches(X, y, batch_size, shuffle=False):
+
+    indices = np.arange(len(y))
+
+    if shuffle:
+        np.random.shuffle(indices)
+
+    for start in range(0, len(y), batch_size):
+
+        idx = indices[start:start + batch_size]
+
+        X_batch = torch.from_numpy(
+            X[idx].toarray()
+        ).to(DEVICE)
+
+        y_batch = torch.tensor(
+            y[idx],
+            dtype=torch.float32,
+            device=DEVICE
+        )
+
+        yield X_batch, y_batch
+
+
+# ============================================================
+# 8. TRAINING AND EVALUATION
+# ============================================================
+
+
+def train_epoch(model, optimizer, config):
+
+    model.train()
+
+    total_loss = 0.0
+
+    for X_batch, y_batch in get_batches(
+        X_train,
+        y_train,
+        config["batch_size"],
+        shuffle=True
+    ):
+
+        optimizer.zero_grad(set_to_none=True)
+
+        logits = model(X_batch)
+
+        loss = calculate_loss(
+            logits,
+            y_batch,
+            config
+        )
+
+        loss.backward()
+        optimizer.step()
+
+        total_loss += (
+            loss.item() * len(y_batch)
+        )
+
+    return total_loss / len(y_train)
+
+
+def evaluate(model, X, y, config):
+
+    model.eval()
+
+    total_loss = 0.0
+    probabilities = []
+
+    with torch.inference_mode():
+
+        for X_batch, y_batch in get_batches(
+            X,
+            y,
+            config["batch_size"]
+        ):
+
+            logits = model(X_batch)
+
+            loss = calculate_loss(
+                logits,
+                y_batch,
+                config
+            )
+
+            total_loss += (
+                loss.item() * len(y_batch)
+            )
+
+            probs = torch.sigmoid(logits)
+
+            probabilities.append(
+                probs.cpu().numpy()
+            )
+
+    return (
+        total_loss / len(y),
+        np.concatenate(probabilities)
+    )
+
+
+# ============================================================
+# 9. PERFORMANCE METRICS
+# ============================================================
+
+
+def calculate_metrics(
+    y_true,
+    probabilities,
+    threshold
+):
+
+    predictions = (
+        probabilities >= threshold
+    ).astype(int)
+
+    tn, fp, fn, tp = confusion_matrix(
+        y_true,
+        predictions,
+        labels=[0, 1]
+    ).ravel()
+
+    return {
+
+        "Accuracy": accuracy_score(
+            y_true,
+            predictions
+        ),
+
+        "Macro Precision": precision_score(
+            y_true,
+            predictions,
+            average="macro",
+            zero_division=0
+        ),
+
+        "Macro Recall": recall_score(
+            y_true,
+            predictions,
+            average="macro",
+            zero_division=0
+        ),
+
+        "Macro F1": f1_score(
+            y_true,
+            predictions,
+            average="macro",
+            zero_division=0
+        ),
+
+        "Negative Precision": precision_score(
+            y_true,
+            predictions,
+            pos_label=0,
+            zero_division=0
+        ),
+
+        "Negative Recall": recall_score(
+            y_true,
+            predictions,
+            pos_label=0,
+            zero_division=0
+        ),
+
+        "Negative F1": f1_score(
+            y_true,
+            predictions,
+            pos_label=0,
+            zero_division=0
+        ),
+
+        "Negative F2": fbeta_score(
+            y_true,
+            predictions,
+            beta=2,
+            pos_label=0,
+            zero_division=0
+        ),
+
+        "Positive Precision": precision_score(
+            y_true,
+            predictions,
+            pos_label=1,
+            zero_division=0
+        ),
+
+        "Positive Recall": recall_score(
+            y_true,
+            predictions,
+            pos_label=1,
+            zero_division=0
+        ),
+
+        "Positive F1": f1_score(
+            y_true,
+            predictions,
+            pos_label=1,
+            zero_division=0
+        ),
+
+        "Negative AP": average_precision_score(
+            (y_true == 0).astype(int),
+            1.0 - probabilities
+        ),
+
+        "Correctly Detected Negatives": int(tn),
+
+        "Missed Negative Reviews": int(fp),
+
+        "Positive Reviews Flagged Negative": int(fn),
+
+        "Correctly Detected Positives": int(tp),
+
+        "Threshold": float(threshold)
+    }
+
+
+def get_optimization_score(metrics):
+
+    if OPTIMIZATION_METRIC == "negative_f1":
+
+        return metrics["Negative F1"]
+
+    elif OPTIMIZATION_METRIC == "negative_f2":
+
+        return metrics["Negative F2"]
+
+    elif OPTIMIZATION_METRIC == "macro_f1":
+
+        return metrics["Macro F1"]
+
+    elif OPTIMIZATION_METRIC == "combined":
+
+        return (
+            0.70 * metrics["Negative F1"]
+            + 0.30 * metrics["Macro F1"]
+        )
+
+    raise ValueError("Invalid optimization metric")
+
+
+# ============================================================
+# 10. FAST THRESHOLD OPTIMIZATION
+# ============================================================
+
+
+def optimize_threshold(y_true, probabilities):
+
+    predicted_negative = (
+        probabilities[:, None]
+        < THRESHOLDS[None, :]
+    )
+
+    actual_negative = (
+        y_true[:, None] == 0
+    )
+
+    actual_positive = ~actual_negative
+
+    negative_tp = np.sum(
+        predicted_negative & actual_negative,
+        axis=0
+    )
+
+    negative_fp = np.sum(
+        predicted_negative & actual_positive,
+        axis=0
+    )
+
+    negative_fn = np.sum(
+        ~predicted_negative & actual_negative,
+        axis=0
+    )
+
+    positive_tp = np.sum(
+        ~predicted_negative & actual_positive,
+        axis=0
+    )
+
+    eps = 1e-12
+
+    negative_precision = negative_tp / (
+        negative_tp + negative_fp + eps
+    )
+
+    negative_recall = negative_tp / (
+        negative_tp + negative_fn + eps
+    )
+
+    negative_f1 = (
+        2 * negative_precision * negative_recall
+        / (
+            negative_precision
+            + negative_recall
+            + eps
+        )
+    )
+
+    negative_f2 = (
+        5 * negative_precision * negative_recall
+        / (
+            4 * negative_precision
+            + negative_recall
+            + eps
+        )
+    )
+
+    positive_f1 = (
+        2 * positive_tp
+        / (
+            2 * positive_tp
+            + negative_fp
+            + negative_fn
+            + eps
+        )
+    )
+
+    macro_f1 = (
+        negative_f1 + positive_f1
+    ) / 2
+
+    if OPTIMIZATION_METRIC == "negative_f1":
+
+        scores = negative_f1
+
+    elif OPTIMIZATION_METRIC == "negative_f2":
+
+        scores = negative_f2
+
+    elif OPTIMIZATION_METRIC == "macro_f1":
+
+        scores = macro_f1
+
+    elif OPTIMIZATION_METRIC == "combined":
+
+        scores = (
+            0.70 * negative_f1
+            + 0.30 * macro_f1
+        )
+
+    else:
+
+        raise ValueError(
+            "Invalid optimization metric"
+        )
+
+    # Break ties using the threshold closest to 0.5.
+
+    best_indices = np.flatnonzero(
+        np.isclose(
+            scores,
+            scores.max(),
+            atol=1e-12,
+            rtol=0
+        )
+    )
+
+    best_idx = best_indices[
+        np.argmin(
+            np.abs(
+                THRESHOLDS[best_indices] - 0.5
+            )
+        )
+    ]
+
+    return (
+        float(THRESHOLDS[best_idx]),
+        float(scores[best_idx])
+    )
+
+
+# ============================================================
+# 11. TRAIN ONE EXPERIMENT
+# ============================================================
+
+
+def run_experiment(name, config):
+
+    # Reset seeds to make the weight decay
+    # comparisons as consistent as possible.
+
+    set_seed(SEED)
+
+    model = SentimentFFNN(
+        INPUT_DIM,
+        config
+    ).to(DEVICE)
+
+    optimizer = torch.optim.AdamW(
+        model.parameters(),
+        lr=config["learning_rate"],
+        weight_decay=config["weight_decay"]
+    )
+
+    parameter_count = sum(
+        p.numel()
+        for p in model.parameters()
+        if p.requires_grad
+    )
+
+    print("\n" + "=" * 75)
+    print("Experiment:", name)
+    print("Weight decay:", config["weight_decay"])
+    print("Parameters:", parameter_count)
+    print("=" * 75)
+
+    history = {
+        "epoch": [],
+        "train_loss": [],
+        "val_loss": [],
+        "val_macro_f1": [],
+        "val_negative_f1": [],
+        "val_negative_precision": [],
+        "val_negative_recall": [],
+        "val_negative_f2": [],
+        "val_negative_ap": [],
+        "val_optimized_score": [],
+        "val_threshold": []
+    }
+
+    best_monitor = -float("inf")
+    best_weights = None
+    best_epoch = 0
+
+    epochs_without_improvement = 0
+
+    if DEVICE.type == "cuda":
+        torch.cuda.synchronize()
+
+    start_time = time.perf_counter()
+
+    for epoch in range(1, EPOCHS + 1):
+
+        train_loss = train_epoch(
+            model,
+            optimizer,
+            config
+        )
+
+        val_loss, val_probs = evaluate(
+            model,
+            X_val,
+            y_val,
+            config
+        )
+
+        threshold, score = optimize_threshold(
+            y_val,
+            val_probs
+        )
+
+        metrics = calculate_metrics(
+            y_val,
+            val_probs,
+            threshold
+        )
+
+        history["epoch"].append(epoch)
+
+        history["train_loss"].append(
+            train_loss
+        )
+
+        history["val_loss"].append(
+            val_loss
+        )
+
+        history["val_macro_f1"].append(
+            metrics["Macro F1"]
+        )
+
+        history["val_negative_f1"].append(
+            metrics["Negative F1"]
+        )
+
+        history["val_negative_precision"].append(
+            metrics["Negative Precision"]
+        )
+
+        history["val_negative_recall"].append(
+            metrics["Negative Recall"]
+        )
+
+        history["val_negative_f2"].append(
+            metrics["Negative F2"]
+        )
+
+        history["val_negative_ap"].append(
+            metrics["Negative AP"]
+        )
+
+        history["val_optimized_score"].append(
+            score
+        )
+
+        history["val_threshold"].append(
+            threshold
+        )
+
+        print(
+            f"Epoch {epoch:02d}/{EPOCHS} | "
+            f"Train: {train_loss:.4f} | "
+            f"Val: {val_loss:.4f} | "
+            f"Macro F1: {metrics['Macro F1']:.4f} | "
+            f"Neg F1: {metrics['Negative F1']:.4f} | "
+            f"Neg Recall: "
+            f"{metrics['Negative Recall']:.4f} | "
+            f"Threshold: {threshold:.2f}"
+        )
+
+        # Early stopping based on negative F1
+        # or the selected optimization metric.
+
+        monitor = score
+
+        if monitor > best_monitor + MIN_DELTA:
+
+            best_monitor = monitor
+            best_epoch = epoch
+
+            best_weights = {
+                key: value.detach().cpu().clone()
+                for key, value
+                in model.state_dict().items()
+            }
+
+            epochs_without_improvement = 0
+
+        else:
+
+            epochs_without_improvement += 1
+
+            if epochs_without_improvement >= PATIENCE:
+
+                print("Early stopping triggered.")
+                break
+
+    if DEVICE.type == "cuda":
+        torch.cuda.synchronize()
+
+    training_time = (
+        time.perf_counter() - start_time
+    )
+
+    model.load_state_dict(best_weights)
+
+    # Evaluate the selected checkpoint.
+
+    val_loss, val_probs = evaluate(
+        model,
+        X_val,
+        y_val,
+        config
+    )
+
+    best_threshold, best_score = optimize_threshold(
+        y_val,
+        val_probs
+    )
+
+    # Evaluate all models at the same historical
+    # threshold, as well as their optimized thresholds.
+
+    default_metrics = calculate_metrics(
+        y_val,
+        val_probs,
+        threshold=0.5
+    )
+
+    historical_metrics = calculate_metrics(
+        y_val,
+        val_probs,
+        threshold=PREVIOUS_THRESHOLD
+    )
+
+    optimized_metrics = calculate_metrics(
+        y_val,
+        val_probs,
+        threshold=best_threshold
+    )
+
+    rows = []
+
+    for method, metrics in [
+        ("Default threshold", default_metrics),
+        ("Historical threshold", historical_metrics),
+        ("Optimized threshold", optimized_metrics)
+    ]:
+
+        row = {
+            "Experiment": name,
+            "Weight Decay": config["weight_decay"],
+            "Threshold Method": method,
+            "Best Epoch": best_epoch,
+            "Epochs Trained": len(history["epoch"]),
+            "Training Time (s)": training_time,
+            "Parameters": parameter_count,
+            "Validation Loss": val_loss,
+            "Optimization Score":
+                get_optimization_score(metrics),
+            **metrics
+        }
+
+        rows.append(row)
+
+    checkpoint = {
+        "model_state_dict": best_weights,
+        "input_dim": INPUT_DIM,
+        "hidden_dims": config["hidden_dims"],
+        "input_dropout": config["input_dropout"],
+        "hidden_dropout": config["hidden_dropout"],
+        "config": config,
+        "best_epoch": best_epoch,
+        "threshold": best_threshold,
+        "optimization_metric": OPTIMIZATION_METRIC,
+        "validation_score": best_score,
+        "class_mapping": {
+            0: "negative",
+            1: "positive"
+        }
+    }
+
+    torch.save(
+        checkpoint,
+        OUTPUT_DIR / f"{name}.pt"
+    )
+
+    pd.DataFrame(history).to_csv(
+        OUTPUT_DIR / f"{name}_history.csv",
+        index=False
+    )
+
+    print("\nEXPERIMENT COMPLETED")
+
+    print("Weight decay:", config["weight_decay"])
+    print("Best epoch:", best_epoch)
+    print(f"Training time: {training_time:.2f}s")
+
+    print(
+        "Negative F1 at threshold 0.50:",
+        round(default_metrics["Negative F1"], 6)
+    )
+
+    print(
+        "Negative F1 at threshold 0.61:",
+        round(historical_metrics["Negative F1"], 6)
+    )
+
+    print(
+        "Optimized negative F1:",
+        round(optimized_metrics["Negative F1"], 6)
+    )
+
+    print(
+        "Optimized negative recall:",
+        round(optimized_metrics["Negative Recall"], 6)
+    )
+
+    print("Best threshold:", best_threshold)
+
+    print(
+        "Difference from historical F1:",
+        f"{optimized_metrics['Negative F1'] - PREVIOUS_F1:+.6f}"
+    )
+
+    del model
+    del optimizer
+    del best_weights
+
+    gc.collect()
+
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    return rows
+
+
+# ============================================================
+# 12. RUN FIVE EXPERIMENTS
+# ============================================================
+
+all_results = []
+
+overall_start = time.perf_counter()
+
+for index, experiment in enumerate(
+    EXPERIMENTS,
+    start=1
+):
+
+    print(
+        f"\nRUNNING EXPERIMENT "
+        f"{index}/{len(EXPERIMENTS)}"
+    )
+
+    rows = run_experiment(
+        experiment["name"],
+        experiment["config"]
+    )
+
+    all_results.extend(rows)
+
+    # Save incremental results after each experiment.
+
+    pd.DataFrame(all_results).to_csv(
+        OUTPUT_DIR / "validation_results.csv",
+        index=False
+    )
+
+    optimized_rows = [
+        row for row in all_results
+        if row["Threshold Method"] == "Optimized threshold"
+    ]
+
+    current_best = max(
+        optimized_rows,
+        key=lambda row: row["Optimization Score"]
+    )
+
+    elapsed = time.perf_counter() - overall_start
+
+    estimated_remaining = (
+        elapsed / index
+    ) * (len(EXPERIMENTS) - index)
+
+    print("\nCURRENT BEST MODEL")
+
+    print(
+        "Weight decay:",
+        current_best["Weight Decay"]
+    )
+
+    print(
+        "Negative F1:",
+        round(current_best["Negative F1"], 6)
+    )
+
+    print(
+        "Negative recall:",
+        round(current_best["Negative Recall"], 6)
+    )
+
+    print(
+        "Threshold:",
+        current_best["Threshold"]
+    )
+
+    print(
+        f"Elapsed time: "
+        f"{elapsed / 60:.2f} minutes"
+    )
+
+    print(
+        f"Estimated remaining time: "
+        f"{estimated_remaining / 60:.2f} minutes"
+    )
+
+# ============================================================
+# 13. RANK VALIDATION RESULTS
+# ============================================================
+
+results_df = pd.DataFrame(all_results)
+
+results_df = results_df.sort_values(
+    "Optimization Score",
+    ascending=False
+).reset_index(drop=True)
+
+results_df.to_csv(
+    OUTPUT_DIR / "validation_results_ranked.csv",
+    index=False
+)
+
+# Rank only optimized-threshold results.
+# This provides one row per trained model.
+
+ranked = results_df[
+    results_df["Threshold Method"]
+    == "Optimized threshold"
+].copy()
+
+ranked = ranked.sort_values(
+    "Optimization Score",
+    ascending=False
+).reset_index(drop=True)
+
+ranked.to_csv(
+    OUTPUT_DIR / "weight_decay_leaderboard.csv",
+    index=False
+)
+
+display_columns = [
+    "Weight Decay",
+    "Best Epoch",
+    "Epochs Trained",
+    "Threshold",
+    "Accuracy",
+    "Macro F1",
+    "Negative Precision",
+    "Negative Recall",
+    "Negative F1",
+    "Negative F2",
+    "Negative AP",
+    "Training Time (s)"
+]
+
+print("\n" + "=" * 100)
+print("WEIGHT DECAY VALIDATION LEADERBOARD")
+print("=" * 100)
+
+print(
+    ranked[display_columns]
+    .round(6)
+    .to_string(index=False)
+)
+
+# Select winner before examining test performance.
+
+winner = ranked.iloc[0]
+
+winner_name = winner["Experiment"]
+winner_threshold = float(winner["Threshold"])
+
+baseline_name = EXPERIMENTS[0]["name"]
+
+baseline_validation = ranked.loc[
+    ranked["Experiment"] == baseline_name
+].iloc[0]
+
+print("\nBEST MODEL SELECTED")
+
+print("Experiment:", winner_name)
+print("Weight decay:", winner["Weight Decay"])
+print("Threshold:", winner_threshold)
+
+print(
+    "Validation negative F1:",
+    round(winner["Negative F1"], 6)
+)
+
+print(
+    "Previous historical negative F1:",
+    round(PREVIOUS_F1, 6)
+)
+
+print(
+    "Retrained baseline negative F1:",
+    round(baseline_validation["Negative F1"], 6)
+)
+
+print(
+    "Improvement over retrained baseline:",
+    f"{winner['Negative F1'] - baseline_validation['Negative F1']:+.6f}"
+)
+
+# ============================================================
+# 14. FINAL HELD-OUT TEST COMPARISON
+# ============================================================
+
+# Evaluate only the baseline and validation-selected
+# winning model on the held-out test set.
+
+test_specs = [
+    {
+        "name": baseline_name,
+        "threshold": 0.5,
+        "label": "Baseline threshold 0.50"
+    },
+    {
+        "name": baseline_name,
+        "threshold": PREVIOUS_THRESHOLD,
+        "label": "Baseline threshold 0.61"
+    },
+    {
+        "name": baseline_name,
+        "threshold": None,
+        "label": "Baseline optimized threshold"
+    },
+    {
+        "name": winner_name,
+        "threshold": winner_threshold,
+        "label": "Best weight decay"
+    }
+]
+
+test_results = []
+test_artifacts = {}
+
+# Cache probabilities to avoid repeated inference
+# when evaluating different thresholds.
+
+test_cache = {}
+
+for spec in test_specs:
+
+    name = spec["name"]
+
+    if name not in test_cache:
+
+        checkpoint = torch.load(
+            OUTPUT_DIR / f"{name}.pt",
+            map_location="cpu",
+            weights_only=True
+        )
+
+        config = checkpoint["config"]
+
+        model = SentimentFFNN(
+            INPUT_DIM,
+            config
+        ).to(DEVICE)
+
+        model.load_state_dict(
+            checkpoint["model_state_dict"]
+        )
+
+        test_loss, test_probs = evaluate(
+            model,
+            X_test,
+            y_test,
+            config
+        )
+
+        test_cache[name] = {
+            "probabilities": test_probs,
+            "loss": test_loss,
+            "threshold": checkpoint["threshold"],
+            "config": config
+        }
+
+        del model
+
+    cached = test_cache[name]
+
+    threshold = spec["threshold"]
+
+    if threshold is None:
+
+        threshold = cached["threshold"]
+
+    test_probs = cached["probabilities"]
+
+    y_pred = (
+        test_probs >= threshold
+    ).astype(int)
+
+    metrics = calculate_metrics(
+        y_test,
+        test_probs,
+        threshold
+    )
+
+    training_time = ranked.loc[
+        ranked["Experiment"] == name,
+        "Training Time (s)"
+    ].iloc[0]
+
+    test_results.append({
+        "Model": spec["label"],
+        "Experiment": name,
+        "Weight Decay":
+            cached["config"]["weight_decay"],
+        "Training Time (s)": training_time,
+        "Test Loss": cached["loss"],
+        **metrics
+    })
+
+    test_artifacts[spec["label"]] = {
+        "probabilities": test_probs,
+        "predictions": y_pred,
+        "threshold": threshold
+    }
+
+    print("\n" + "=" * 75)
+    print(spec["label"])
+    print("=" * 75)
+
+    print(
+        classification_report(
+            y_test,
+            y_pred,
+            labels=[0, 1],
+            target_names=[
+                "Negative",
+                "Positive"
+            ],
+            digits=4,
+            zero_division=0
+        )
+    )
+
+test_df = pd.DataFrame(test_results)
+
+test_df.to_csv(
+    OUTPUT_DIR / "final_test_comparison.csv",
+    index=False
+)
+
+test_display_columns = [
+    "Model",
+    "Weight Decay",
+    "Threshold",
+    "Accuracy",
+    "Macro F1",
+    "Negative Precision",
+    "Negative Recall",
+    "Negative F1",
+    "Negative F2",
+    "Negative AP",
+    "Missed Negative Reviews"
+]
+
+print("\nFINAL TEST COMPARISON")
+
+print(
+    test_df[test_display_columns]
+    .round(6)
+    .to_string(index=False)
+)
+
+# ============================================================
+# 15. IMPROVEMENT OVER BASELINE
+# ============================================================
+
+baseline_test = test_df.loc[
+    test_df["Model"] == "Baseline optimized threshold"
+].iloc[0]
+
+best_test = test_df.loc[
+    test_df["Model"] == "Best weight decay"
+].iloc[0]
+
+print("\nIMPROVEMENT OVER RETRAINED BASELINE")
+
+for metric in [
+    "Accuracy",
+    "Macro F1",
+    "Negative Precision",
+    "Negative Recall",
+    "Negative F1",
+    "Negative F2",
+    "Negative AP"
+]:
+
+    difference = (
+        best_test[metric] - baseline_test[metric]
+    ) * 100
+
+    print(
+        f"{metric:22s}: "
+        f"{difference:+.4f} percentage points"
+    )
+
+print(
+    "\nAdditional negative reviews detected:",
+    int(
+        best_test["Correctly Detected Negatives"]
+        - baseline_test["Correctly Detected Negatives"]
+    )
+)
+
+print(
+    "Additional positive reviews incorrectly flagged:",
+    int(
+        best_test["Positive Reviews Flagged Negative"]
+        - baseline_test["Positive Reviews Flagged Negative"]
+    )
+)
+
+# ============================================================
+# 16. SAVE WINNING MODEL AND HYPERPARAMETERS
+# ============================================================
+
+winning_checkpoint = torch.load(
+    OUTPUT_DIR / f"{winner_name}.pt",
+    map_location="cpu",
+    weights_only=True
+)
+
+winning_checkpoint["threshold"] = winner_threshold
+
+torch.save(
+    winning_checkpoint,
+    OUTPUT_DIR / "ffnn_tfidf_best.pt"
+)
+
+best_config = copy.deepcopy(
+    winning_checkpoint["config"]
+)
+
+best_config["classification_threshold"] = (
+    winner_threshold
+)
+
+best_config["experiment"] = winner_name
+
+best_config["validation_score"] = float(
+    winner["Optimization Score"]
+)
+
+best_config["optimization_metric"] = (
+    OPTIMIZATION_METRIC
+)
+
+best_config["best_epoch"] = int(
+    winner["Best Epoch"]
+)
+
+with open(
+    OUTPUT_DIR / "best_hyperparameters.json",
+    "w"
+) as file:
+
+    json.dump(
+        best_config,
+        file,
+        indent=4
+    )
+
+print("\nBEST HYPERPARAMETERS")
+
+print(
+    json.dumps(best_config, indent=4)
+)
+
+# ============================================================
+# 17. GENERATE PLOTS
+# ============================================================
+
+# All plots are generated after training.
+# No interactive windows are opened.
+
+SCARLET = "#BB0000"
+GRAY = "#666666"
+
+# ------------------------------------------------------------
+# A. Weight decay versus validation negative F1
+# ------------------------------------------------------------
+
+decay_plot = ranked.sort_values(
+    "Weight Decay"
+)
+
+plt.figure(figsize=(9, 5))
+
+plt.plot(
+    decay_plot["Weight Decay"],
+    decay_plot["Negative F1"],
+    marker="o",
+    markersize=7,
+    linewidth=2,
+    color=SCARLET,
+    label="Validation negative F1"
+)
+
+plt.axhline(
+    PREVIOUS_F1,
+    color=GRAY,
+    linestyle="--",
+    label=f"Historical F1: {PREVIOUS_F1:.4f}"
+)
+
+plt.scatter(
+    winner["Weight Decay"],
+    winner["Negative F1"],
+    color="black",
+    s=80,
+    zorder=5,
+    label="Best configuration"
+)
+
+plt.xscale("log")
+
+plt.xlabel("Weight Decay (Log Scale)")
+plt.ylabel("Negative F1")
+plt.title("FFNN Weight Decay Optimization")
+plt.legend()
+plt.grid(alpha=0.2)
+plt.tight_layout()
+
+plt.savefig(
+    OUTPUT_DIR / "weight_decay_vs_f1.png",
+    dpi=300
+)
+
+plt.close()
+
+# ------------------------------------------------------------
+# B. Negative precision, recall and F1 by weight decay
+# ------------------------------------------------------------
+
+plt.figure(figsize=(9, 5))
+
+for metric, color in [
+    ("Negative Precision", GRAY),
+    ("Negative Recall", SCARLET),
+    ("Negative F1", "#333333"),
+    ("Negative F2", "#D65C5C")
+]:
+
+    plt.plot(
+        decay_plot["Weight Decay"],
+        decay_plot[metric],
+        marker="o",
+        linewidth=2,
+        color=color,
+        label=metric
+    )
+
+plt.xscale("log")
+plt.xlabel("Weight Decay (Log Scale)")
+plt.ylabel("Score")
+plt.title("Negative Sentiment Performance by Weight Decay")
+plt.legend()
+plt.grid(alpha=0.2)
+plt.tight_layout()
+
+plt.savefig(
+    OUTPUT_DIR / "weight_decay_negative_metrics.png",
+    dpi=300
+)
+
+plt.close()
+
+# ------------------------------------------------------------
+# C. Validation F1 curves for all experiments
+# ------------------------------------------------------------
+
+plt.figure(figsize=(10, 6))
+
+for experiment in EXPERIMENTS:
+
+    name = experiment["name"]
+
+    decay = experiment["config"]["weight_decay"]
+
+    history = pd.read_csv(
+        OUTPUT_DIR / f"{name}_history.csv"
+    )
+
+    plt.plot(
+        history["epoch"],
+        history["val_negative_f1"],
+        linewidth=2,
+        label=f"Decay = {decay:.6f}"
+    )
+
+plt.axhline(
+    PREVIOUS_F1,
+    color="black",
+    linestyle="--",
+    label="Historical best F1"
+)
+
+plt.xlabel("Epoch")
+plt.ylabel("Validation Negative F1")
+plt.title("Weight Decay Experiment Learning Curves")
+plt.legend()
+plt.grid(alpha=0.2)
+plt.tight_layout()
+
+plt.savefig(
+    OUTPUT_DIR / "all_experiments_f1_curves.png",
+    dpi=300
+)
+
+plt.close()
+
+# ------------------------------------------------------------
+# D. Winning model training and validation loss
+# ------------------------------------------------------------
+
+history = pd.read_csv(
+    OUTPUT_DIR / f"{winner_name}_history.csv"
+)
+
+plt.figure(figsize=(9, 5))
+
+plt.plot(
+    history["epoch"],
+    history["train_loss"],
+    label="Training Loss",
+    color=SCARLET,
+    linewidth=2
+)
+
+plt.plot(
+    history["epoch"],
+    history["val_loss"],
+    label="Validation Loss",
+    color=GRAY,
+    linewidth=2
+)
+
+plt.axvline(
+    winning_checkpoint["best_epoch"],
+    linestyle="--",
+    color="black",
+    label="Selected Epoch"
+)
+
+plt.xlabel("Epoch")
+plt.ylabel("Weighted Binary Cross-Entropy Loss")
+plt.title("Best FFNN Training and Validation Loss")
+plt.legend()
+plt.grid(alpha=0.2)
+plt.tight_layout()
+
+plt.savefig(
+    OUTPUT_DIR / "best_ffnn_loss_curves.png",
+    dpi=300
+)
+
+plt.close()
+
+# ------------------------------------------------------------
+# E. Winning model validation metrics
+# ------------------------------------------------------------
+
+plt.figure(figsize=(9, 5))
+
+for column, label, color in [
+    ("val_negative_f1", "Negative F1", SCARLET),
+    ("val_negative_recall", "Negative Recall", "#333333"),
+    ("val_negative_precision", "Negative Precision", GRAY),
+    ("val_macro_f1", "Macro F1", "#999999")
+]:
+
+    plt.plot(
+        history["epoch"],
+        history[column],
+        linewidth=2,
+        label=label,
+        color=color
+    )
+
+plt.axvline(
+    winning_checkpoint["best_epoch"],
+    linestyle="--",
+    color="black",
+    label="Selected Epoch"
+)
+
+plt.xlabel("Epoch")
+plt.ylabel("Score")
+plt.title("Best FFNN Validation Performance")
+plt.legend()
+plt.grid(alpha=0.2)
+plt.tight_layout()
+
+plt.savefig(
+    OUTPUT_DIR / "best_ffnn_validation_curves.png",
+    dpi=300
+)
+
+plt.close()
+
+# ------------------------------------------------------------
+# F. Confusion matrices
+# ------------------------------------------------------------
+
+for label, artifact in test_artifacts.items():
+
+    ConfusionMatrixDisplay.from_predictions(
+        y_test,
+        artifact["predictions"],
+        labels=[0, 1],
+        display_labels=[
+            "Negative",
+            "Positive"
+        ],
+        cmap="Reds"
+    )
+
+    plt.title(label)
+    plt.tight_layout()
+
+    safe_name = (
+        label.lower()
+        .replace(" ", "_")
+        .replace(".", "_")
+    )
+
+    plt.savefig(
+        OUTPUT_DIR / f"{safe_name}_confusion.png",
+        dpi=300
+    )
+
+    plt.close()
+
+# ------------------------------------------------------------
+# G. Final negative sentiment comparison
+# ------------------------------------------------------------
+
+plot_metrics = [
+    "Negative Precision",
+    "Negative Recall",
+    "Negative F1",
+    "Negative F2"
+]
+
+positions = np.arange(len(test_df))
+
+width = 0.18
+
+plt.figure(figsize=(12, 6))
+
+colors = [
+    "#BB0000",
+    "#666666",
+    "#D65C5C",
+    "#333333"
+]
+
+for i, metric in enumerate(plot_metrics):
+
+    offset = (
+        i - (len(plot_metrics) - 1) / 2
+    ) * width
+
+    plt.bar(
+        positions + offset,
+        test_df[metric],
+        width=width,
+        label=metric,
+        color=colors[i]
+    )
+
+plt.xticks(
+    positions,
+    test_df["Model"],
+    rotation=15,
+    ha="right"
+)
+
+plt.ylabel("Score")
+plt.ylim(0, 1.05)
+plt.title("Negative Sentiment Detection Comparison")
+plt.legend()
+plt.grid(axis="y", alpha=0.2)
+plt.tight_layout()
+
+plt.savefig(
+    OUTPUT_DIR / "negative_sentiment_comparison.png",
+    dpi=300
+)
+
+plt.close()
+
+# ------------------------------------------------------------
+# H. Negative precision-recall curves
+# ------------------------------------------------------------
+
+plt.figure(figsize=(9, 6))
+
+negative_labels = (
+    y_test == 0
+).astype(int)
+
+# One curve per unique trained model.
+# Different thresholds do not change the PR curve.
+
+for name, cached in test_cache.items():
+
+    negative_probs = (
+        1.0 - cached["probabilities"]
+    )
+
+    precision, recall, _ = precision_recall_curve(
+        negative_labels,
+        negative_probs
+    )
+
+    ap = average_precision_score(
+        negative_labels,
+        negative_probs
+    )
+
+    decay = cached["config"]["weight_decay"]
+
+    plt.plot(
+        recall,
+        precision,
+        linewidth=2,
+        label=f"Decay={decay:.6f} (AP={ap:.4f})"
+    )
+
+plt.axhline(
+    negative_labels.mean(),
+    linestyle="--",
+    color="black",
+    label="Random baseline"
+)
+
+plt.xlabel("Negative Recall")
+plt.ylabel("Negative Precision")
+plt.title("Negative Sentiment Precision-Recall Curve")
+plt.legend()
+plt.grid(alpha=0.2)
+plt.tight_layout()
+
+plt.savefig(
+    OUTPUT_DIR / "negative_precision_recall.png",
+    dpi=300
+)
+
+plt.close()
+
+# ------------------------------------------------------------
+# I. Threshold sensitivity of winning model
+# ------------------------------------------------------------
+
+model = SentimentFFNN(
+    INPUT_DIM,
+    winning_checkpoint["config"]
+).to(DEVICE)
+
+model.load_state_dict(
+    winning_checkpoint["model_state_dict"]
+)
+
+_, val_probs = evaluate(
+    model,
+    X_val,
+    y_val,
+    winning_checkpoint["config"]
+)
+
+threshold_results = []
+
+for threshold in THRESHOLDS:
+
+    metrics = calculate_metrics(
+        y_val,
+        val_probs,
+        threshold
+    )
+
+    threshold_results.append(metrics)
+
+threshold_df = pd.DataFrame(
+    threshold_results
+)
+
+threshold_df.to_csv(
+    OUTPUT_DIR / "threshold_analysis.csv",
+    index=False
+)
+
+plt.figure(figsize=(9, 6))
+
+for metric, color in [
+    ("Negative Precision", GRAY),
+    ("Negative Recall", SCARLET),
+    ("Negative F1", "#333333"),
+    ("Negative F2", "#D65C5C")
+]:
+
+    plt.plot(
+        threshold_df["Threshold"],
+        threshold_df[metric],
+        label=metric,
+        color=color,
+        linewidth=2
+    )
+
+plt.axvline(
+    winner_threshold,
+    linestyle="--",
+    color="black",
+    label=f"Selected threshold: {winner_threshold:.2f}"
+)
+
+plt.xlabel("Positive Classification Threshold")
+plt.ylabel("Score")
+plt.title("Validation Threshold Sensitivity")
+plt.legend()
+plt.grid(alpha=0.2)
+plt.tight_layout()
+
+plt.savefig(
+    OUTPUT_DIR / "threshold_sensitivity.png",
+    dpi=300
+)
+
+plt.close()
+
+del model
+
+# ============================================================
+# 18. FINAL SUMMARY
+# ============================================================
+
+total_time = (
+    time.perf_counter() - overall_start
+)
+
+total_epochs = int(
+    ranked["Epochs Trained"].sum()
+)
+
+print("\n" + "=" * 75)
+print("WEIGHT DECAY SEARCH COMPLETED")
+print("=" * 75)
+
+print("Experiments:", len(EXPERIMENTS))
+
+print(
+    f"Total epochs trained: "
+    f"{total_epochs}/{len(EXPERIMENTS) * EPOCHS}"
+)
+
+print(
+    f"Total runtime: "
+    f"{total_time / 60:.2f} minutes"
+)
+
+print(
+    "Original weight decay:",
+    BASE_CONFIG["weight_decay"]
+)
+
+print(
+    "Best weight decay:",
+    winner["Weight Decay"]
+)
+
+print(
+    "Best classification threshold:",
+    winner_threshold
+)
+
+print(
+    "Historical validation negative F1:",
+    round(PREVIOUS_F1, 6)
+)
+
+print(
+    "Retrained baseline validation negative F1:",
+    round(baseline_validation["Negative F1"], 6)
+)
+
+print(
+    "Best validation negative F1:",
+    round(winner["Negative F1"], 6)
+)
+
+print(
+    "Best test negative precision:",
+    round(best_test["Negative Precision"], 6)
+)
+
+print(
+    "Best test negative recall:",
+    round(best_test["Negative Recall"], 6)
+)
+
+print(
+    "Best test negative F1:",
+    round(best_test["Negative F1"], 6)
+)
+
+print(
+    "Best test macro F1:",
+    round(best_test["Macro F1"], 6)
+)
+
+print(
+    "Missed negative reviews:",
+    int(best_test["Missed Negative Reviews"])
+)
+
+print("\nAll results saved to:")
+print(OUTPUT_DIR)
