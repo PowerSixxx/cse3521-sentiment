@@ -53,7 +53,7 @@ Our planned deep model is a **Feedforward Neural Network (FFNN) /w Hyperparamete
 
 **Figure 1. Training and validation loss across epochs.**
 
-![Figure 1. Training and validation loss curves](figures/m3_loss_curves.png){width=80%}
+![Figure 1. Training and validation loss curves](figures/ffnn_loss_curves.png){width=80%}
 
 **Interpretation:** [Describe how training and validation loss change over time, identify the best epoch, and discuss convergence, overfitting, or underfitting. Explain how the final model checkpoint was selected without using the held-out test set.]
 
