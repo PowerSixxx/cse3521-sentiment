@@ -1,0 +1,60 @@
+{
+  "test_source": "group_sample_seed44.csv (notebook split)",
+  "test_size": 8570,
+  "models": [
+    {
+      "name": "Majority-class baseline",
+      "accuracy": 0.84,
+      "precision_macro": 0.42,
+      "recall_macro": 0.5,
+      "f1_macro": 0.4565,
+      "confusion_matrix": [
+        [
+          0,
+          1371
+        ],
+        [
+          0,
+          7199
+        ]
+      ],
+      "training_seconds": 0.01
+    },
+    {
+      "name": "Multinomial Naive Bayes (BoW)",
+      "accuracy": 0.9177,
+      "precision_macro": 0.8397,
+      "recall_macro": 0.8695,
+      "f1_macro": 0.8535,
+      "confusion_matrix": [
+        [
+          1095,
+          276
+        ],
+        [
+          429,
+          6770
+        ]
+      ],
+      "training_seconds": 44.85
+    },
+    {
+      "name": "Logistic Regression (TF-IDF)",
+      "accuracy": 0.9286,
+      "precision_macro": 0.8597,
+      "recall_macro": 0.8855,
+      "f1_macro": 0.8718,
+      "confusion_matrix": [
+        [
+          1127,
+          244
+        ],
+        [
+          368,
+          6831
+        ]
+      ],
+      "training_seconds": null
+    }
+  ]
+}
