@@ -239,7 +239,8 @@ with tab_perf:
         st.dataframe(
             rows.style.format({c: "{:.4f}" for c in ["Accuracy", "Precision", "Recall", "F1 (macro)"]}
                               )
-                .highlight_max(subset=["F1 (macro)"], color="#c8e6c9"),
+                .highlight_max(subset=["F1 (macro)"],
+                               props="font-weight: bold; background-color: rgba(76, 175, 80, 0.35)"),
             hide_index=True, width="stretch",
         )
         best = max(metrics["models"], key=lambda m: m["f1_macro"])
